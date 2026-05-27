@@ -21,8 +21,8 @@ Inspired by [ratatui](https://ratatui.rs/): buffer-diff rendering, layout constr
 
 ```text
 ┌─ Sidebar ──┐┌─ Main ──────────────────────────┐
-│  > item 1  ││ Count: 42                        │
-│    item 2  ││ あいうえお  CJK = 2 cells each   │
+│  > item 1  ││ Count: 42                       │
+│    item 2  ││ あいうえお  CJK = 2 cells each     │
 │    item 3  ││ 👨‍👩‍👧‍👦       ZWJ family = 2 cells   │
 └────────────┘└─────────────────────────────────┘
 ```
