@@ -1,0 +1,21 @@
+name = "etui"
+version = "1.0.0"
+description = "A TUI library for Gleam: correct Unicode, minimal-diff rendering, clean terminal teardown."
+licences = ["MIT"]
+repository = { type = "github", user = "lupodevelop", repo = "etui" }
+links = [
+  { title = "API reference (HexDocs)", href = "https://hexdocs.pm/etui" },
+  { title = "Widget tour", href = "https://etui.altumdream.com/widgets" },
+  { title = "Guides (GitHub)", href = "https://github.com/lupodevelop/etui/tree/main/docs" },
+  { title = "Examples (GitHub)", href = "https://github.com/lupodevelop/etui/tree/main/examples" },
+  { title = "Repository", href = "https://github.com/lupodevelop/etui" },
+  { title = "Changelog", href = "https://github.com/lupodevelop/etui/blob/main/CHANGELOG.md" },
+]
+
+[dependencies]
+gleam_stdlib = ">= 1.0.0 and < 2.0.0"
+gleam_javascript = ">= 1.0.0 and < 2.0.0"
+
+[dev_dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"
+fio = ">= 1.0.0 and < 2.0.0"
