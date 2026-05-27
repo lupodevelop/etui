@@ -1,0 +1,11 @@
+name = "minimal"
+version = "1.0.0"
+description = "Minimal étui app: hello world, quit with q"
+licences = ["MIT"]
+
+[dependencies]
+gleam_stdlib = ">= 1.0.0 and < 2.0.0"
+etui = { path = "../.." }
+
+[dev_dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"
