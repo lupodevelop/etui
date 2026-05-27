@@ -104,9 +104,9 @@ build_buffer_rev(Width, Height, Row, Bin, Fg, Bg, Mod, Link, T, Default, RevAcc)
     build_buffer_rev(Width, Height, Row + 1, Bin, Fg, Bg, Mod, Link, T, Default, RevAcc2).
 
 %% Produces exactly Width cells, padding with Default if Bin is exhausted.
-build_row_rev(Width, Col, _, _, _, _, _, _, Default, RevAcc) when Col >= Width ->
+build_row_rev(Width, Col, _, _, _, _, _, _, _Default, RevAcc) when Col >= Width ->
     RevAcc;
-build_row_rev(Width, Col, <<>>, Fg, Bg, Mod, Link, T, Default, RevAcc) ->
+build_row_rev(Width, Col, <<>>, _Fg, _Bg, _Mod, _Link, _T, Default, RevAcc) ->
     fill_rev(Width - Col, Default, RevAcc);
 build_row_rev(Width, Col, <<B, Rest/binary>>, Fg, Bg, Mod, Link, T, Default, RevAcc)
         when B >= 16#20, B < 16#7F ->
