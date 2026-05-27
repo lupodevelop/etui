@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Étui logo" width="200">
+  <img src="https://raw.githubusercontent.com/lupodevelop/etui/46ca25177b909bc74bf92d40055ac14aa0fe2f63/assets/logo.png" alt="Étui logo" width="200">
 </p>
 
 <p align="center">
