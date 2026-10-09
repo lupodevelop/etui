@@ -60,7 +60,7 @@ Small, but they will not compile silently:
   keys, named in a fixed order (`"ctrl+shift+left"`). These previously reached
   the app as raw escape text.
 - **`backend.Paste`:** pasted text as one event. Opt in with
-  `erlang.new_with_options(erlang.Options(mouse: False, paste: True))`. It is
+  `erlang.new_with_options(backend.Options(mouse: False, paste: True))`. It is
   off by default because an app that ignores `Paste` would see nothing at all
   when the user pastes.
 - **`backend.MouseDrag` and `backend.MouseMove`,** with mouse tracking raised
