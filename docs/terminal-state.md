@@ -13,6 +13,7 @@ every target and by the two places that cannot call Gleam at all:
 | Sequence | Undoes |
 |---|---|
 | `?1000l ?1002l ?1003l ?1005l ?1006l ?1007l ?1015l` | mouse reporting, in every encoding a terminal might have accepted |
+| `?2026l` | a frame held by synchronized output, if the app died mid-frame |
 | `?2004l` | bracketed paste |
 | `?1049l` | the alternate screen |
 | `?7h` | auto-wrap, which etui turns off to reclaim the last column |

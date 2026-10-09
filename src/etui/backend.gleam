@@ -20,6 +20,16 @@ pub type RenderOp {
   EnableBracketedPaste
   /// Disable bracketed paste.
   DisableBracketedPaste
+  /// Start synchronized output (DEC private mode 2026).
+  ///
+  /// A frame reaches the terminal as a run of cursor moves and text, and an
+  /// emulator may paint whatever has arrived so far, which shows half of the
+  /// old frame above half of the new one. Between this and
+  /// `EndSynchronizedOutput` the emulator keeps showing what it had and
+  /// applies everything that was written in one go.
+  BeginSynchronizedOutput
+  /// Show what was written since `BeginSynchronizedOutput`.
+  EndSynchronizedOutput
 }
 
 /// Mouse button identifier.
@@ -164,6 +174,10 @@ pub fn op_to_ansi(op: RenderOp) -> String {
       "\u{001B}[?1007l\u{001B}[?1015l\u{001B}[?1006l\u{001B}[?1005l\u{001B}[?1003l\u{001B}[?1002l\u{001B}[?1000l"
     EnableBracketedPaste -> "\u{001B}[?2004h"
     DisableBracketedPaste -> "\u{001B}[?2004l"
+    // A terminal that does not know mode 2026 ignores it, so these are sent
+    // without asking first.
+    BeginSynchronizedOutput -> "\u{001B}[?2026h"
+    EndSynchronizedOutput -> "\u{001B}[?2026l"
   }
 }
 
@@ -180,6 +194,9 @@ pub fn ops_to_ansi(ops: List(RenderOp)) -> String {
 /// a correct answer exactly when the state is least trustworthy.
 pub fn restore_ops() -> List(RenderOp) {
   [
+    // First, so that an app which died between the two halves of a frame does
+    // not leave the screen held.
+    EndSynchronizedOutput,
     DisableMouse,
     DisableBracketedPaste,
     ExitAltScreen,

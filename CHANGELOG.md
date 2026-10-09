@@ -12,8 +12,9 @@ parser, and a Terminal you can drive from your own loop.
 Small, but they will not compile silently:
 
 - **`backend.InputEvent` gained `MouseDrag`, `MouseMove` and `Paste`**, and
-  **`backend.RenderOp` gained `EnableBracketedPaste` and
-  `DisableBracketedPaste`**. A `case` over either that was exhaustive without a
+  **`backend.RenderOp` gained `EnableBracketedPaste`,
+  `DisableBracketedPaste`, `BeginSynchronizedOutput` and
+  `EndSynchronizedOutput`**. A `case` over either that was exhaustive without a
   `_ ->` arm now fails to compile. Adding the arm is the whole fix.
 - **`geometry.split_flex` is gone; use `split_with`.** After the layout rework
   the two had the same arity, the same argument order and the same body, and
@@ -40,6 +41,12 @@ Small, but they will not compile silently:
 
 ### Added
 
+- **Frames are drawn atomically.** A frame that emits anything is wrapped in
+  `BeginSynchronizedOutput` and `EndSynchronizedOutput` (DEC private mode 2026),
+  so the terminal keeps showing the old frame until the new one has arrived
+  instead of painting it halfway. A terminal without the mode ignores the
+  sequences. A frame with nothing to emit still emits nothing, and
+  `restore_ops` ends the mode first in case an app dies mid-frame.
 - **`backend.restore_sequence`, `restore_ops`, `op_to_ansi` and `ops_to_ansi`:**
   one definition of what an app sends the terminal, shared by every target and
   handed to the two places that cannot call Gleam — the shell watchdog and the

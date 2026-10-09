@@ -21,6 +21,8 @@ pub fn restore_turns_off_every_mode_an_app_turns_on_test() {
   string.contains(seq, "\u{001B}[?1006l") |> should.equal(True)
   // Bracketed paste, which is opt-in and was never in the old cleanup.
   string.contains(seq, "\u{001B}[?2004l") |> should.equal(True)
+  // A frame held by synchronized output.
+  string.contains(seq, "\u{001B}[?2026l") |> should.equal(True)
   // The alternate screen.
   string.contains(seq, "\u{001B}[?1049l") |> should.equal(True)
   // And the three things an app changes without a RenderOp for them.

@@ -237,7 +237,9 @@ app.run_buffered(
 
 On **JavaScript** (Node), the same functions return `Promise(AppResult(_))`.
 
-Low-level `RenderOp` values: `Write`, `MoveCursor`, `ClearScreen`, `EnterAltScreen`, `ExitAltScreen`, `EnableMouse`, `DisableMouse`. Enable mouse with `default.new_with_mouse()`.
+Low-level `RenderOp` values: `Write`, `MoveCursor`, `ClearScreen`, `EnterAltScreen`, `ExitAltScreen`, `EnableMouse`, `DisableMouse`, `BeginSynchronizedOutput`, `EndSynchronizedOutput`. Enable mouse with `default.new_with_mouse()`.
+
+Every frame `terminal.draw` emits is wrapped in synchronized output (DEC private mode 2026), so the terminal shows the previous frame until the new one is complete. A terminal without the mode ignores it, and a frame with nothing to emit is not wrapped.
 
 ## Examples in this repo
 

@@ -89,6 +89,8 @@ fn describe(op: backend.RenderOp) -> String {
   case op {
     backend.Write(s) -> "W:" <> s
     backend.ClearScreen -> "CLEAR"
+    backend.BeginSynchronizedOutput -> "BEGIN"
+    backend.EndSynchronizedOutput -> "END"
     backend.MoveCursor(x, y) ->
       "MOVE:" <> string.inspect(x) <> "," <> string.inspect(y)
     _ -> "OTHER"
@@ -186,8 +188,8 @@ pub fn frame_ops_repaints_in_full_on_a_first_frame_test() {
   let ops =
     terminal.frame_ops(blank, filled, True, terminal.CursorUntouched, True)
   list.map(ops, describe)
-  |> list.take(2)
-  |> should.equal(["CLEAR", "MOVE:0,0"])
+  |> list.take(3)
+  |> should.equal(["BEGIN", "CLEAR", "MOVE:0,0"])
 }
 
 @target(erlang)
@@ -219,7 +221,11 @@ pub fn frame_ops_emits_only_the_changed_cells_test() {
     terminal.frame_ops(before, after, False, terminal.CursorUntouched, True)
   // One write, and it carries the single changed cell rather than the row.
   case ops {
-    [backend.Write(ansi)] -> {
+    [
+      backend.BeginSynchronizedOutput,
+      backend.Write(ansi),
+      backend.EndSynchronizedOutput,
+    ] -> {
       string.contains(ansi, "X")
       |> should.equal(True)
       string.contains(ansi, "abcde")
@@ -247,7 +253,11 @@ pub fn a_hidden_cursor_still_emits_when_the_frame_is_unchanged_test() {
   let screen = rect_new(0, 0, 3, 1)
   let same = buffer.buffer_new(screen)
   terminal.frame_ops(same, same, False, terminal.CursorHidden, True)
-  |> should.equal([backend.Write(cursor.hide())])
+  |> should.equal([
+    backend.BeginSynchronizedOutput,
+    backend.Write(cursor.hide()),
+    backend.EndSynchronizedOutput,
+  ])
 }
 
 @target(erlang)
@@ -263,7 +273,7 @@ pub fn a_shown_cursor_moves_to_a_one_based_position_test() {
       True,
     )
   {
-    [backend.Write(ansi)] ->
+    [backend.BeginSynchronizedOutput, backend.Write(ansi), _] ->
       // Terminals count from 1, and rows come before columns.
       string.contains(ansi, "\u{001B}[3;5H")
       |> should.equal(True)
@@ -429,7 +439,7 @@ pub fn an_inline_viewport_still_repaints_in_full_on_a_first_frame_test() {
   case
     terminal.frame_ops(blank, filled, True, terminal.CursorUntouched, False)
   {
-    [backend.Write(ansi)] ->
+    [backend.BeginSynchronizedOutput, backend.Write(ansi), _] ->
       string.contains(ansi, "abcde")
       |> should.equal(True)
     _ -> should.fail()
@@ -556,4 +566,29 @@ pub fn a_fixed_viewport_exits_like_an_inline_one_test() {
     terminal.close_viewport(terminal.Inline(3), area)
     |> list.map(describe),
   )
+}
+
+@target(erlang)
+pub fn a_frame_that_draws_is_held_until_it_is_complete_test() {
+  let screen = rect_new(0, 0, 5, 1)
+  let blank = buffer.buffer_new(screen)
+  let filled =
+    buffer.set_string(
+      blank,
+      Position(0, 0),
+      "abcde",
+      style.new(style.Default, style.Default, style.none()),
+    )
+  let ops =
+    terminal.frame_ops(blank, filled, False, terminal.CursorUntouched, True)
+  list.first(ops) |> should.equal(Ok(backend.BeginSynchronizedOutput))
+  list.last(ops) |> should.equal(Ok(backend.EndSynchronizedOutput))
+}
+
+@target(erlang)
+pub fn synchronized_output_is_mode_2026_test() {
+  backend.op_to_ansi(backend.BeginSynchronizedOutput)
+  |> should.equal("\u{001B}[?2026h")
+  backend.op_to_ansi(backend.EndSynchronizedOutput)
+  |> should.equal("\u{001B}[?2026l")
 }
