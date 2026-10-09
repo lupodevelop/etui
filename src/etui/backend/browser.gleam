@@ -39,6 +39,19 @@ import gleam/list
 // ─────────────────────────────────────────────────────────────────
 // Types
 
+@target(erlang)
+/// Placeholder so the module is not empty on the Erlang target, where it
+/// cannot be used. Hex refuses modules without public definitions.
+pub opaque type BrowserState {
+  BrowserState
+}
+
+@target(erlang)
+@internal
+pub fn blank_state() -> BrowserState {
+  BrowserState
+}
+
 @target(javascript)
 pub opaque type BrowserState {
   BrowserState(
