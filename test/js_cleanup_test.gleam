@@ -8,11 +8,11 @@ import etui/backend/node
 @target(javascript)
 pub fn node_cleanup_does_not_throw_test() {
   let b = node.new()
-  b.cleanup(node.NodeState(cols: 80, rows: 24, pending: "", queue: []))
+  b.cleanup(node.blank_state())
 }
 
 @target(javascript)
 pub fn browser_cleanup_does_not_throw_test() {
   let b = browser.new()
-  b.cleanup(browser.BrowserState(cols: 80, rows: 24, pending: "", queue: []))
+  b.cleanup(browser.blank_state())
 }

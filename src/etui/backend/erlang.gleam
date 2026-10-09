@@ -10,7 +10,7 @@ import gleam/list
 // ─────────────────────────────────────────────────────────────────
 // Types
 
-pub type ErlangTerminalState {
+pub opaque type ErlangTerminalState {
   ErlangTerminalState(
     raw_mode_active: Bool,
     cols: Int,

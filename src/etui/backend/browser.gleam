@@ -40,7 +40,7 @@ import gleam/list
 // Types
 
 @target(javascript)
-pub type BrowserState {
+pub opaque type BrowserState {
   BrowserState(
     cols: Int,
     rows: Int,
@@ -49,6 +49,13 @@ pub type BrowserState {
     /// Events decoded but not yet handed to the app.
     queue: List(InputEvent),
   )
+}
+
+@target(javascript)
+/// A state with nothing read yet, for tests of the backend's own functions.
+@internal
+pub fn blank_state() -> BrowserState {
+  BrowserState(cols: 80, rows: 24, pending: "", queue: [])
 }
 
 // ─────────────────────────────────────────────────────────────────

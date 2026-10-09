@@ -41,7 +41,7 @@ import gleam/list
 // Types
 
 @target(javascript)
-pub type NodeState {
+pub opaque type NodeState {
   NodeState(
     cols: Int,
     rows: Int,
@@ -50,6 +50,13 @@ pub type NodeState {
     /// Events decoded but not yet handed to the app.
     queue: List(InputEvent),
   )
+}
+
+@target(javascript)
+/// A state with nothing read yet, for tests of the backend's own functions.
+@internal
+pub fn blank_state() -> NodeState {
+  NodeState(cols: 80, rows: 24, pending: "", queue: [])
 }
 
 // ─────────────────────────────────────────────────────────────────

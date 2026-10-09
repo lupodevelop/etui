@@ -2,8 +2,9 @@
 
 Two kinds of change are in here. The first kind the compiler finds for you:
 three types changed shape, four gained variants, eight functions changed
-signature and one was removed. The second kind it cannot — a handful of calls
-that still compile and now answer differently.
+signature, three backend states became opaque and one function was removed.
+The second kind it cannot — a handful of calls that still compile and now
+answer differently.
 
 Every number and every claim below was measured by running both versions
 against the same input. How, and how to redo it, is at the end.
@@ -143,6 +144,14 @@ fn(m) {
 
 The long timeout is also the longest an event from outside the terminal waits
 before the loop notices it.
+
+### The backend states are opaque
+
+`erlang.ErlangTerminalState`, `node.NodeState` and `browser.BrowserState` can
+be named in a type but no longer built or taken apart. Passing a backend to
+`app.run_*` or `terminal.new` needs no change. Code that read `cols`, `rows`
+or `pending` from one should call `terminal.area` or the backend's `next_size`
+instead.
 
 ### New variants in `backend.InputEvent` and `backend.RenderOp`
 

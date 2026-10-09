@@ -29,6 +29,10 @@ Small, but they will not compile silently:
   `run_buffered_cursor` is a `fn(state) -> Int`,** not an `Int`. It is called
   with the current state before each poll, so an app can poll fast while it is
   busy and slowly while it is idle. `fn(_) { 16 }` is the old behaviour.
+- **`ErlangTerminalState`, `NodeState` and `BrowserState` are opaque.** Their
+  fields were never meant to be read or built from outside the backends, and
+  each new field would have been a source break. Code that only passes the
+  backend around, as `app.run_*` and `terminal.new` do, is unaffected.
 - **`keys.match` answers `Unknown` rather than `Char` for a multi-grapheme
   string.** With modified keys now reaching the app, `"shift+left"` would have
   arrived at a text field as a ten-grapheme "character" to insert. Single
