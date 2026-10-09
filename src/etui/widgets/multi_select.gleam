@@ -34,6 +34,7 @@ pub type MultiSelectState {
 // ─────────────────────────────────────────────────────────────────
 // Widget config constructors
 
+/// A checkbox list with reverse-video cursor and `[x]` marks.
 pub fn multi_select_new(items: List(String)) -> MultiSelectWidget {
   MultiSelectWidget(
     items: items,
@@ -53,6 +54,7 @@ pub fn with_max(w: MultiSelectWidget, m: Int) -> MultiSelectWidget {
   MultiSelectWidget(..w, max: int.max(0, m))
 }
 
+/// Replace the `[x]` / `[ ]` marks (e.g. `"✓ "` / `"  "`).
 pub fn with_marks(
   w: MultiSelectWidget,
   checked: String,
@@ -61,10 +63,12 @@ pub fn with_marks(
   MultiSelectWidget(..w, checked_mark: checked, unchecked_mark: unchecked)
 }
 
+/// Marker drawn left of the cursor row; other rows get matching blanks.
 pub fn with_cursor_mark(w: MultiSelectWidget, m: String) -> MultiSelectWidget {
   MultiSelectWidget(..w, cursor_mark: m)
 }
 
+/// Style of the row under the cursor.
 pub fn with_cursor_style(
   w: MultiSelectWidget,
   s: style.Style,
@@ -72,6 +76,7 @@ pub fn with_cursor_style(
   MultiSelectWidget(..w, cursor_style: s)
 }
 
+/// Style applied to checked rows that are not under the cursor.
 pub fn with_selected_style(
   w: MultiSelectWidget,
   s: style.Style,
@@ -79,6 +84,7 @@ pub fn with_selected_style(
   MultiSelectWidget(..w, selected_style: s)
 }
 
+/// Colors of plain unselected rows.
 pub fn with_colors(
   w: MultiSelectWidget,
   fg: style.Color,
@@ -90,10 +96,12 @@ pub fn with_colors(
 // ─────────────────────────────────────────────────────────────────
 // State
 
+/// Cursor at the first item, nothing checked.
 pub fn state_new() -> MultiSelectState {
   MultiSelectState(cursor: 0, selected: [], offset: 0)
 }
 
+/// Move the cursor down, stopping at the last item.
 pub fn select_next(
   state: MultiSelectState,
   item_count: Int,
@@ -102,6 +110,7 @@ pub fn select_next(
   MultiSelectState(..state, cursor: int.min(state.cursor + 1, max_idx))
 }
 
+/// Move the cursor up, stopping at the first item.
 pub fn select_prev(state: MultiSelectState) -> MultiSelectState {
   MultiSelectState(..state, cursor: int.max(state.cursor - 1, 0))
 }
@@ -126,10 +135,12 @@ pub fn toggle(state: MultiSelectState, max: Int) -> MultiSelectState {
   }
 }
 
+/// Is the item at `idx` checked?
 pub fn is_selected(state: MultiSelectState, idx: Int) -> Bool {
   list.contains(state.selected, idx)
 }
 
+/// Indices of the checked items, sorted ascending.
 pub fn selected_indices(state: MultiSelectState) -> List(Int) {
   state.selected
 }
@@ -149,6 +160,7 @@ pub fn selected_values(
   })
 }
 
+/// Drop every check; the cursor stays where it is.
 pub fn clear_selection(state: MultiSelectState) -> MultiSelectState {
   MultiSelectState(..state, selected: [])
 }
@@ -161,6 +173,7 @@ pub fn effective_offset(state: MultiSelectState, height: Int) -> Int {
 // ─────────────────────────────────────────────────────────────────
 // Rendering
 
+/// Render the visible window of items, scrolling to keep the cursor in view.
 pub fn render(
   buf: buffer.Buffer,
   area: geometry.Rect,

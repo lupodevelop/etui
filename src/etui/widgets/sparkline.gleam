@@ -40,6 +40,7 @@ pub type Sparkline {
 // ─────────────────────────────────────────────────────────────────
 // Constructors
 
+/// A sparkline with a cyan-to-teal gradient fill and auto scale.
 pub fn sparkline_new(data: List(Int)) -> Sparkline {
   Sparkline(
     data: data,
@@ -51,26 +52,32 @@ pub fn sparkline_new(data: List(Int)) -> Sparkline {
   )
 }
 
+/// Choose the column coloring.
 pub fn with_fill(s: Sparkline, fill: SparkFill) -> Sparkline {
   Sparkline(..s, fill: fill)
 }
 
+/// Pin the scale so two sparklines are comparable. Clamped to ≥ 1.
 pub fn with_max(s: Sparkline, max: Int) -> Sparkline {
   Sparkline(..s, max_val: max)
 }
 
+/// Color behind the bars.
 pub fn with_bg(s: Sparkline, bg: style.Color) -> Sparkline {
   Sparkline(..s, bg: bg)
 }
 
+/// Frames an animated fill needs to cycle. Clamped to ≥ 1.
 pub fn with_period(s: Sparkline, period: Int) -> Sparkline {
   Sparkline(..s, period: int.max(1, period))
 }
 
+/// Extra text modifier (bold, italic…) applied to every bar cell.
 pub fn with_modifier(s: Sparkline, m: style.Modifier) -> Sparkline {
   Sparkline(..s, modifier: m)
 }
 
+/// Take only bg and modifier from a Style.
 pub fn with_style(s: Sparkline, st: style.Style) -> Sparkline {
   Sparkline(..s, bg: st.bg, modifier: st.modifier)
 }

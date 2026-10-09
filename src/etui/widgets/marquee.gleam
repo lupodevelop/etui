@@ -27,6 +27,7 @@ pub type Marquee {
 // ─────────────────────────────────────────────────────────────────
 // Constructors
 
+/// A ticker at default speed with a `"  ·  "` separator.
 pub fn marquee_new(text: String) -> Marquee {
   Marquee(
     text: text,
@@ -38,18 +39,22 @@ pub fn marquee_new(text: String) -> Marquee {
   )
 }
 
+/// Frames per one-character advance. Clamped to ≥ 1 (fastest).
 pub fn with_speed(m: Marquee, speed: Int) -> Marquee {
   Marquee(..m, speed: int.max(1, speed))
 }
 
+/// String inserted between repetitions of the text.
 pub fn with_separator(m: Marquee, sep: String) -> Marquee {
   Marquee(..m, separator: sep)
 }
 
+/// Color of the scrolling text.
 pub fn with_fg(m: Marquee, fg: style.Color) -> Marquee {
   Marquee(..m, fg: fg)
 }
 
+/// Set fg, bg and modifier in one call.
 pub fn with_style(
   m: Marquee,
   fg: style.Color,

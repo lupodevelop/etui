@@ -23,6 +23,7 @@ pub type HBarFill {
   HBarAnimatedRainbow
 }
 
+/// One row of the chart: a label, its numeric value, and a proportional bar.
 pub type HBarItem {
   HBarItem(label: String, value: Int)
 }
@@ -47,6 +48,7 @@ pub type HBar {
 // ─────────────────────────────────────────────────────────────────
 // Constructors
 
+/// A new chart with rainbow fill, auto-computed scale, and values shown.
 pub fn hbar_new(items: List(HBarItem)) -> HBar {
   HBar(
     items: items,
@@ -61,38 +63,47 @@ pub fn hbar_new(items: List(HBarItem)) -> HBar {
   )
 }
 
+/// Shorthand for building an `HBarItem`.
 pub fn item(label: String, value: Int) -> HBarItem {
   HBarItem(label: label, value: value)
 }
 
+/// Choose how the filled cells get their color.
 pub fn with_fill(h: HBar, fill: HBarFill) -> HBar {
   HBar(..h, fill: fill)
 }
 
+/// Pin the scale so bars are comparable across frames. Clamped to ≥ 1.
 pub fn with_max(h: HBar, max: Int) -> HBar {
   HBar(..h, max_val: int.max(1, max))
 }
 
+/// Reserve a fixed label column instead of sizing it to the longest label.
 pub fn with_label_width(h: HBar, w: Int) -> HBar {
   HBar(..h, label_width: int.max(0, w))
 }
 
+/// Show or hide the numeric value after each bar.
 pub fn with_show_value(h: HBar, show: Bool) -> HBar {
   HBar(..h, show_value: show)
 }
 
+/// Replace the block characters used for the filled and empty cells.
 pub fn with_chars(h: HBar, bar: String, empty: String) -> HBar {
   HBar(..h, bar_char: bar, empty_char: empty)
 }
 
+/// Frames the animated rainbow needs to cycle through a full hue rotation.
 pub fn with_period(h: HBar, period: Int) -> HBar {
   HBar(..h, period: int.max(1, period))
 }
 
+/// Color behind both the filled and the empty cells.
 pub fn with_bg(h: HBar, bg: style.Color) -> HBar {
   HBar(..h, bg: bg)
 }
 
+/// Take only the background from a Style.
 pub fn with_style(h: HBar, s: style.Style) -> HBar {
   HBar(..h, bg: s.bg)
 }
@@ -100,6 +111,8 @@ pub fn with_style(h: HBar, s: style.Style) -> HBar {
 // ─────────────────────────────────────────────────────────────────
 // Rendering
 
+/// Render one row per item, top-down, stopping at the area's bottom edge.
+/// `frame` drives the animated rainbow; pass any constant when not animating.
 pub fn render(
   buf: buffer.Buffer,
   area: geometry.Rect,

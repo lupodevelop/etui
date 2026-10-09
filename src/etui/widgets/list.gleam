@@ -59,6 +59,7 @@ pub fn list_new_styled(items: List(span.Line)) -> ListWidget {
   )
 }
 
+/// Colors of unselected rows.
 pub fn with_colors(
   l: ListWidget,
   fg: style.Color,
@@ -67,10 +68,12 @@ pub fn with_colors(
   ListWidget(..l, fg: fg, bg: bg)
 }
 
+/// Style of the selected row (default: reverse video).
 pub fn with_highlight_style(l: ListWidget, s: style.Style) -> ListWidget {
   ListWidget(..l, highlight_style: s)
 }
 
+/// Take only fg/bg from a Style.
 pub fn with_style(l: ListWidget, s: style.Style) -> ListWidget {
   ListWidget(..l, fg: s.fg, bg: s.bg)
 }
@@ -83,19 +86,23 @@ pub fn with_blink(l: ListWidget, period: Int) -> ListWidget {
 // ─────────────────────────────────────────────────────────────────
 // State constructors and navigation
 
+/// Selection at the first item, viewport at the top.
 pub fn state_new() -> ListState {
   ListState(selected: 0, offset: 0)
 }
 
+/// Jump the selection to `idx`. Negative indices clamp to 0.
 pub fn select(state: ListState, idx: Int) -> ListState {
   ListState(..state, selected: int.max(0, idx))
 }
 
+/// Move the selection down one, stopping at the last item.
 pub fn select_next(state: ListState, item_count: Int) -> ListState {
   let max_idx = int.max(0, item_count - 1)
   ListState(..state, selected: int.min(max_idx, state.selected + 1))
 }
 
+/// Move the selection up one, stopping at the first item.
 pub fn select_prev(state: ListState) -> ListState {
   ListState(..state, selected: int.max(0, state.selected - 1))
 }
@@ -110,6 +117,7 @@ pub fn clamp_state(state: ListState, item_count: Int) -> ListState {
 // ─────────────────────────────────────────────────────────────────
 // Rendering
 
+/// Render the list with no selection (e.g. for a static table of contents).
 pub fn render(
   buf: buffer.Buffer,
   area: geometry.Rect,
@@ -121,6 +129,7 @@ pub fn render(
   }
 }
 
+/// Render the list, scrolling to keep the selection in view.
 pub fn render_stateful(
   buf: buffer.Buffer,
   area: geometry.Rect,
@@ -136,6 +145,7 @@ pub fn render_stateful(
   }
 }
 
+/// Like `render_stateful`, but the highlight blinks on `blink_period` frames.
 pub fn render_animated(
   buf: buffer.Buffer,
   area: geometry.Rect,
@@ -247,6 +257,7 @@ fn apply_highlight_to_line(line: span.Line, hl: style.Style) -> span.Line {
 // ─────────────────────────────────────────────────────────────────
 // Scroll helpers
 
+/// Effective scroll offset for a viewport of `height` rows.
 pub fn effective_offset(state: ListState, height: Int) -> Int {
   scroll_offset(state.selected, state.offset, height)
 }

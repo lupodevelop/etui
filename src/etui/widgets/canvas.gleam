@@ -24,6 +24,7 @@ pub type SeriesFill {
   SeriesAnimatedRainbow
 }
 
+/// One plotted line: y-values sampled evenly across the canvas width.
 pub type Series {
   Series(data: List(Int), fill: SeriesFill)
 }
@@ -42,26 +43,32 @@ pub type Canvas {
 // ─────────────────────────────────────────────────────────────────
 // Constructors
 
+/// A canvas drawing the given series, overlaid in order.
 pub fn canvas_new(series: List(Series)) -> Canvas {
   Canvas(series: series, max_val: 0, bg: style.Default, period: 60)
 }
 
+/// A series with static rainbow fill.
 pub fn series_new(data: List(Int)) -> Series {
   Series(data: data, fill: SeriesRainbow)
 }
 
+/// Choose how this series' dots get their color.
 pub fn with_series_fill(s: Series, fill: SeriesFill) -> Series {
   Series(..s, fill: fill)
 }
 
+/// Pin the scale so canvases are comparable across frames. Clamped to ≥ 1.
 pub fn with_max(c: Canvas, max: Int) -> Canvas {
   Canvas(..c, max_val: int.max(1, max))
 }
 
+/// Color of cells no dot touched.
 pub fn with_bg(c: Canvas, bg: style.Color) -> Canvas {
   Canvas(..c, bg: bg)
 }
 
+/// Frames an animated rainbow needs to cycle. Clamped to ≥ 1.
 pub fn with_period(c: Canvas, period: Int) -> Canvas {
   Canvas(..c, period: int.max(1, period))
 }

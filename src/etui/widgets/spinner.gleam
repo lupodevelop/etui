@@ -7,6 +7,8 @@ import gleam/list
 // ─────────────────────────────────────────────────────────────────
 // Types
 
+/// Frame sequences for the spinner. Most are single characters; `Points`,
+/// `Meter`, and `Ellipsis` span several cells, so give them room.
 pub type SpinnerStyle {
   Dots
   Line
@@ -22,9 +24,11 @@ pub type SpinnerStyle {
   Meter
   Hamburger
   Ellipsis
+  /// Your own frame sequence, cycled in order.
   Custom(frames: List(String))
 }
 
+/// A spinner's look: frame set, label, and colors.
 pub type Spinner {
   Spinner(style: SpinnerStyle, label: String, fg: style.Color, bg: style.Color)
 }
@@ -32,22 +36,27 @@ pub type Spinner {
 // ─────────────────────────────────────────────────────────────────
 // Constructors
 
+/// A plain braille-dots spinner with no label.
 pub fn spinner_new() -> Spinner {
   Spinner(style: Dots, label: "", fg: style.Default, bg: style.Default)
 }
 
+/// Pick the frame sequence.
 pub fn with_style(s: Spinner, spinner_style: SpinnerStyle) -> Spinner {
   Spinner(..s, style: spinner_style)
 }
 
+/// Text drawn to the right of the spinning character, one space apart.
 pub fn with_label(s: Spinner, label: String) -> Spinner {
   Spinner(..s, label: label)
 }
 
+/// Colors of the spinner and its label.
 pub fn with_colors(s: Spinner, fg: style.Color, bg: style.Color) -> Spinner {
   Spinner(..s, fg: fg, bg: bg)
 }
 
+/// Take only fg/bg from a Style.
 pub fn with_render_style(s: Spinner, st: style.Style) -> Spinner {
   Spinner(..s, fg: st.fg, bg: st.bg)
 }
@@ -58,6 +67,7 @@ pub fn with_render_style(s: Spinner, st: style.Style) -> Spinner {
 // `frame` comes from the caller's AnimState.frame, the spinner is
 // stateless and purely a function of the current frame number.
 
+/// Write the frame character (plus label) at the area's top-left corner.
 pub fn render(
   buf: buffer.Buffer,
   area: geometry.Rect,

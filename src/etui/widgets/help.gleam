@@ -19,7 +19,9 @@ pub type Binding {
 }
 
 pub type HelpMode {
+  /// One line: `k1/k2 desc • k3 desc`.
   Short
+  /// Two columns, one binding per row.
   Full
 }
 
@@ -37,10 +39,12 @@ pub type Help {
 // ─────────────────────────────────────────────────────────────────
 // Constructors
 
+/// Shorthand for building a `Binding`.
 pub fn binding(keys: List(String), description: String) -> Binding {
   Binding(keys: keys, description: description)
 }
 
+/// A short-mode help line with `" • "` separators and dimmed descriptions.
 pub fn help_new(bindings: List(Binding)) -> Help {
   Help(
     bindings: bindings,
@@ -52,10 +56,12 @@ pub fn help_new(bindings: List(Binding)) -> Help {
   )
 }
 
+/// Switch between the one-line and two-column layouts.
 pub fn with_mode(h: Help, mode: HelpMode) -> Help {
   Help(..h, mode: mode)
 }
 
+/// Flip between Short and Full; handy for a toggle key.
 pub fn toggle_mode(h: Help) -> Help {
   case h.mode {
     Short -> Help(..h, mode: Full)
@@ -63,18 +69,22 @@ pub fn toggle_mode(h: Help) -> Help {
   }
 }
 
+/// String joined between entries in Short mode (default `" • "`).
 pub fn with_separator(h: Help, sep: String) -> Help {
   Help(..h, separator: sep)
 }
 
+/// Color of the key names.
 pub fn with_key_color(h: Help, fg: style.Color) -> Help {
   Help(..h, key_fg: fg)
 }
 
+/// Color of the descriptions.
 pub fn with_description_color(h: Help, fg: style.Color) -> Help {
   Help(..h, description_fg: fg)
 }
 
+/// Background of the whole view.
 pub fn with_bg(h: Help, bg: style.Color) -> Help {
   Help(..h, bg: bg)
 }
@@ -82,6 +92,7 @@ pub fn with_bg(h: Help, bg: style.Color) -> Help {
 // ─────────────────────────────────────────────────────────────────
 // Rendering
 
+/// Render the help view in its current mode.
 pub fn render(
   buf: buffer.Buffer,
   area: geometry.Rect,
