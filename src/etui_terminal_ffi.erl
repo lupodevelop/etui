@@ -74,7 +74,7 @@ write_cleanup(Seq) ->
     ok.
 
 %% Read and discard all data in the tty input buffer.
-%% Keeps spawning readers until no data arrives within TimeoutMs.
+%% Stops when the input is closed or no data arrives within TimeoutMs.
 %% Kills the reader process on timeout so it doesn't linger.
 drain_input(TimeoutMs) ->
     Self = self(),
@@ -84,6 +84,8 @@ drain_input(TimeoutMs) ->
         Self ! {Ref, Chunk}
     end),
     receive
+        {Ref, eof} -> ok;
+        {Ref, {error, _}} -> ok;
         {Ref, _} -> drain_input(TimeoutMs)
     after TimeoutMs ->
         exit(Pid, kill),
@@ -443,9 +445,10 @@ window_size() ->
 read_with_timeout(TimeoutMs) ->
     ensure_reader(self()),
     receive
-        {etui_input, Bin} -> {ok, Bin}
+        {etui_input, Bin} -> {ok, Bin};
+        {etui_input_closed} -> {error, input_closed}
     after TimeoutMs ->
-        {error, nil}
+        {error, read_timeout}
     end.
 
 ensure_reader(Owner) ->
@@ -456,10 +459,16 @@ ensure_reader(Owner) ->
         _ -> ok
     end.
 
+%% eof and {error, _} are answers that never change: asking again gets the same
+%% one at once, forever. Report it a single time and let the process end.
 reader_loop(Owner) ->
-    Raw = io:get_chars("", 128),
-    Owner ! {etui_input, to_binary(Raw)},
-    reader_loop(Owner).
+    case io:get_chars("", 128) of
+        eof -> Owner ! {etui_input_closed};
+        {error, _} -> Owner ! {etui_input_closed};
+        Raw ->
+            Owner ! {etui_input, to_binary(Raw)},
+            reader_loop(Owner)
+    end.
 
 stop_reader() ->
     case erlang:whereis(etui_kbd_reader) of

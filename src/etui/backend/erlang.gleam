@@ -6,6 +6,7 @@ import etui/backend.{
 }
 import etui/input
 import gleam/list
+import gleam/result
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -27,6 +28,21 @@ pub opaque type ErlangTerminalState {
     /// Events decoded but not yet handed to the app. One read can produce
     /// many; `poll` returns one per call and keeps the rest here.
     queue: List(InputEvent),
+  )
+}
+
+/// A state with nothing read yet, for tests of the backend's own functions.
+@internal
+pub fn blank_state() -> ErlangTerminalState {
+  ErlangTerminalState(
+    raw_mode_active: False,
+    cols: 80,
+    rows: 24,
+    mouse: False,
+    last_size_check: 0,
+    last_size_change: 0,
+    pending: "",
+    queue: [],
   )
 }
 
@@ -116,8 +132,15 @@ fn write_string(s: String) -> Nil {
   panic as "etui/backend/erlang requires the Erlang target"
 }
 
+// Why a read returned no bytes. A timeout may simply be tried again; closed
+// input never will produce any, and the app has to be told.
+type ReadFailure {
+  ReadTimeout
+  InputClosed
+}
+
 @external(erlang, "etui_terminal_ffi", "read_with_timeout")
-fn read_with_timeout_ffi(timeout_ms: Int) -> Result(String, Nil) {
+fn read_with_timeout_ffi(timeout_ms: Int) -> Result(String, ReadFailure) {
   let _ = timeout_ms
   panic as "etui/backend/erlang requires the Erlang target"
 }
@@ -215,7 +238,7 @@ fn poll_input(
   case state.queue {
     [event, ..rest] -> Ok(#(event, ErlangTerminalState(..state, queue: rest)))
     [] -> {
-      let #(input_events, pending) = read_events(state, timeout_ms)
+      use #(input_events, pending) <- result.try(read_events(state, timeout_ms))
       let #(sized, resize_events) = check_resize(state)
       // Resize first: the app should lay out at the new size before it
       // processes keys that were typed during the resize. Both are delivered,
@@ -233,15 +256,16 @@ fn poll_input(
 fn read_events(
   state: ErlangTerminalState,
   timeout_ms: Int,
-) -> #(List(InputEvent), String) {
+) -> Result(#(List(InputEvent), String), Error) {
   case read_with_timeout_ffi(timeout_ms) {
     Ok(chunk) -> {
       let input.Parsed(events, pending) = input.parse(state.pending <> chunk)
-      #(events, pending)
+      Ok(#(events, pending))
     }
     // The read timed out, so nothing more is coming: a pending remainder is a
     // real Escape press rather than the start of a sequence.
-    Error(_) -> #(input.flush(state.pending), "")
+    Error(ReadTimeout) -> Ok(#(input.flush(state.pending), ""))
+    Error(InputClosed) -> Error(IOError("terminal input is closed"))
   }
 }
 

@@ -141,6 +141,11 @@ Small, but they will not compile silently:
 
 ### Fixed
 
+- **Closed input spun the Erlang backend.** The keyboard reader turned EOF into
+  an empty chunk and asked again at once, which flooded the app with ticks, and
+  the cleanup drain never finished with stdin closed. EOF and a failed read now
+  end the reader and reach the app as an I/O error, so the loop stops and the
+  terminal is restored.
 - **Wide symbols below U+1F300 were one cell short.** ⌚ ☕ ⚡ ✅ ❌ ⭐ and the
   rest of the East Asian Wide symbols outside the CJK blocks measured one cell
   where terminals draw two, so everything after one on a row landed a column
