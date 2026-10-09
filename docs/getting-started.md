@@ -30,7 +30,7 @@ pub fn main() {
       view,
       update,
       fn(m) { m.quit },
-      16, // poll every 16ms (~60fps)
+      fn(_) { 16 }, // poll every 16ms (~60fps)
     )
 }
 
@@ -57,7 +57,7 @@ app.run_buffered(
   view_fn,       // fn(model, Rect) -> Buffer
   update_fn,     // fn(InputEvent, model) -> model
   quit_fn,       // fn(model) -> Bool, return True to exit
-  poll_ms,       // event poll interval in milliseconds
+  fn(_) { poll_ms }, // event poll interval in milliseconds
 )
 ```
 

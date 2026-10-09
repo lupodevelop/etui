@@ -429,6 +429,6 @@ fn update(event: backend.InputEvent, model: Model) -> Model {
 pub fn main() -> Nil {
   let model = initial_model()
   let b = default.new()
-  let _ = app.run(b, model, render, update, fn(m) { m.quit }, 16)
+  let _ = app.run(b, model, render, update, fn(m) { m.quit }, fn(_) { 16 })
   Nil
 }

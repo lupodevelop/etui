@@ -15,7 +15,7 @@
 /// import etui/backend/node
 ///
 /// pub fn main() {
-///   app.run(node.new(), initial_model, view, update, quit_fn, 16)
+///   app.run(node.new(), initial_model, view, update, quit_fn, fn(_) { 16 })
 /// }
 /// ```
 ///

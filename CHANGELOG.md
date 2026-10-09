@@ -25,6 +25,10 @@ Small, but they will not compile silently:
   modifier)` is the one-line fix at a call site that has the three on hand.
   The three fields could not grow a fourth without every one of those
   signatures growing with it, which is what `underline_color` needed.
+- **The poll timeout of `app.run`, `run_buffered`, `run_animated` and
+  `run_buffered_cursor` is a `fn(state) -> Int`,** not an `Int`. It is called
+  with the current state before each poll, so an app can poll fast while it is
+  busy and slowly while it is idle. `fn(_) { 16 }` is the old behaviour.
 - **`keys.match` answers `Unknown` rather than `Char` for a multi-grapheme
   string.** With modified keys now reaching the app, `"shift+left"` would have
   arrived at a text field as a ten-grapheme "character" to insert. Single

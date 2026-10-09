@@ -1,7 +1,7 @@
 # Migrating from 1.x to 2.0
 
 Two kinds of change are in here. The first kind the compiler finds for you:
-three types changed shape, four gained variants, four functions changed
+three types changed shape, four gained variants, eight functions changed
 signature and one was removed. The second kind it cannot — a handful of calls
 that still compile and now answer differently.
 
@@ -12,8 +12,9 @@ against the same input. How, and how to redo it, is at the end.
 
 If your app is built on `app.run_*` and the widgets — `block`, `paragraph`,
 `list`, `table`, `input` and the rest — nothing in this document applies to
-you. Not one widget constructor or signature changed, and neither did
-`app.run`, `run_buffered` or `run_animated`.
+you, apart from one argument. Not one widget constructor or signature changed.
+The poll timeout of the `app.run_*` loops is now a function, see
+"The poll timeout is a function" below.
 
 What did change under them is rendering bugs. A scrollbar with nothing to
 report no longer paints over the panel border; status bar sections no longer
@@ -115,6 +116,33 @@ not an API.
 The rename is mechanical, but the *result* is not always identical: where 1.x
 mishandled a non-zero spacing, 2.0 does not. See "Spacing composes with flex"
 below.
+
+### The poll timeout is a function
+
+```gleam
+// 1.x
+app.run_buffered(b, model, render, update, quit, 16)
+
+// 2.0
+app.run_buffered(b, model, render, update, quit, fn(_) { 16 })
+```
+
+`app.run`, `run_buffered`, `run_animated` and `run_buffered_cursor` take the
+timeout as `fn(state) -> Int`, called with the current state right before each
+poll. A constant is `fn(_) { n }`. An app that wants a short timeout while
+something is happening and a long one when it is idle can now say so:
+
+```gleam
+fn(m) {
+  case m.streaming {
+    True -> 33
+    False -> 250
+  }
+}
+```
+
+The long timeout is also the longest an event from outside the terminal waits
+before the loop notices it.
 
 ### New variants in `backend.InputEvent` and `backend.RenderOp`
 

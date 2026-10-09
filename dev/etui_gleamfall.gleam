@@ -1263,6 +1263,6 @@ fn float_round(f: Float) -> Int {
 pub fn main() -> Nil {
   let model = initial_model()
   let b = default.new()
-  let _ = app.run(b, model, render, update, fn(m) { m.quit }, 50)
+  let _ = app.run(b, model, render, update, fn(m) { m.quit }, fn(_) { 50 })
   Nil
 }

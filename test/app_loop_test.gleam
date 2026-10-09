@@ -85,7 +85,7 @@ pub fn run_drives_to_quit_test() {
       fn(_m) { [] },
       count_update,
       count_quit,
-      16,
+      fn(_) { 16 },
     )
   result |> should.equal(app.Success(Counter(count: 1, quit: True)))
 }
@@ -103,7 +103,7 @@ pub fn run_buffered_drives_to_quit_test() {
       fn(_m, screen) { buffer.buffer_new(screen) },
       count_update,
       count_quit,
-      16,
+      fn(_) { 16 },
     )
   result |> should.equal(app.Success(Counter(count: 2, quit: True)))
 }
@@ -117,7 +117,7 @@ pub fn run_animated_drives_to_quit_test() {
       fn(_m, screen, _anim) { buffer.buffer_new(screen) },
       count_update,
       count_quit,
-      16,
+      fn(_) { 16 },
     )
   result |> should.equal(app.Success(Counter(count: 0, quit: True)))
 }
@@ -131,7 +131,7 @@ pub fn run_buffered_cursor_drives_to_quit_test() {
       fn(_m, screen) { #(buffer.buffer_new(screen), Error(Nil)) },
       count_update,
       count_quit,
-      16,
+      fn(_) { 16 },
     )
   result |> should.equal(app.Success(Counter(count: 1, quit: True)))
 }
@@ -147,7 +147,7 @@ pub fn run_buffered_poll_failure_ends_loop_test() {
       fn(_m, screen) { buffer.buffer_new(screen) },
       count_update,
       count_quit,
-      16,
+      fn(_) { 16 },
     )
   result |> should.equal(app.Success(Counter(count: 1, quit: False)))
 }

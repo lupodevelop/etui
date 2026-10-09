@@ -78,7 +78,7 @@ fn cursor_frame(
 ///   fn(m) { [Write(int.to_string(m.count))] },
 ///   fn(ev, m) { case ev { KeyPress("q") -> m KeyPress(_) -> Model(count: m.count + 1) _ -> m } },
 ///   fn(m) { m.count >= 10 },
-///   16,
+///   fn(_) { 16 },
 /// )
 /// ```
 pub fn run(
@@ -87,7 +87,7 @@ pub fn run(
   render: fn(state) -> List(RenderOp),
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
 ) -> AppResult(state) {
   case b.init() {
     Ok(bs) ->
@@ -123,11 +123,11 @@ fn loop(
   render: fn(state) -> List(RenderOp),
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
 ) -> #(state, backend_state) {
   case b.render(bs, render(state)) {
     Ok(bs2) ->
-      case b.poll(bs2, poll_timeout_ms) {
+      case b.poll(bs2, poll_timeout_ms(state)) {
         Ok(#(event, bs3)) -> {
           let next = on_event(event, state)
           case should_quit(next) {
@@ -154,7 +154,7 @@ fn drive(
   init_state: state,
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
   build: fn(Frame, state, anim.AnimState) -> Frame,
 ) -> AppResult(state) {
   case terminal.new(b) {
@@ -188,7 +188,7 @@ fn drive_loop(
   state: state,
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
   build: fn(Frame, state, anim.AnimState) -> Frame,
   anim_state: anim.AnimState,
 ) -> #(state, Terminal(backend_state)) {
@@ -196,7 +196,7 @@ fn drive_loop(
   // shadows the built-in one, so these match on Ok and fall through.
   case terminal.draw(term, fn(frame) { build(frame, state, anim_state) }) {
     Ok(drawn) ->
-      case terminal.poll(drawn, poll_timeout_ms) {
+      case terminal.poll(drawn, poll_timeout_ms(state)) {
         Ok(#(event, polled)) -> {
           let next = on_event(event, state)
           case should_quit(next) {
@@ -236,7 +236,7 @@ fn drive_loop(
 ///   },
 ///   fn(ev, m) { case ev { KeyPress("q") -> m _ -> m } },
 ///   fn(m) { m.quit },
-///   16,
+///   fn(_) { 16 },
 /// )
 /// ```
 pub fn run_buffered(
@@ -245,7 +245,7 @@ pub fn run_buffered(
   render: fn(state, geometry.Rect) -> buffer.Buffer,
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
 ) -> AppResult(state) {
   drive(b, init_state, on_event, should_quit, poll_timeout_ms, fn(f, s, _anim) {
     buffered_frame(f, render(s, f.area))
@@ -267,7 +267,7 @@ pub fn run_buffered(
 ///   },
 ///   fn(ev, m) { case ev { backend.KeyPress("q") -> Model(quit: True) _ -> m } },
 ///   fn(m) { m.quit },
-///   16,
+///   fn(_) { 16 },
 /// )
 /// ```
 pub fn run_animated(
@@ -276,7 +276,7 @@ pub fn run_animated(
   render: fn(state, geometry.Rect, anim.AnimState) -> buffer.Buffer,
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
 ) -> AppResult(state) {
   drive(
     b,
@@ -302,7 +302,7 @@ pub fn run_buffered_cursor(
     #(buffer.Buffer, Result(geometry.Position, Nil)),
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
 ) -> AppResult(state) {
   drive(b, init_state, on_event, should_quit, poll_timeout_ms, fn(f, s, _anim) {
     cursor_frame(f, render(s, f.area))
@@ -322,7 +322,7 @@ pub fn run(
   render: fn(state) -> List(RenderOp),
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
 ) -> promise.Promise(AppResult(state)) {
   case b.init() {
     Ok(bs) ->
@@ -359,11 +359,11 @@ fn loop_js(
   render: fn(state) -> List(RenderOp),
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
 ) -> promise.Promise(#(state, backend_state)) {
   case b.render(bs, render(state)) {
     Ok(bs2) ->
-      promise.await(b.poll(bs2, poll_timeout_ms), fn(poll_result) {
+      promise.await(b.poll(bs2, poll_timeout_ms(state)), fn(poll_result) {
         case poll_result {
           Ok(#(event, bs3)) -> {
             let next = on_event(event, state)
@@ -394,7 +394,7 @@ fn drive_js(
   init_state: state,
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
   build: fn(Frame, state, anim.AnimState) -> Frame,
 ) -> promise.Promise(AppResult(state)) {
   case terminal.new(b) {
@@ -432,13 +432,13 @@ fn drive_loop_js(
   state: state,
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
   build: fn(Frame, state, anim.AnimState) -> Frame,
   anim_state: anim.AnimState,
 ) -> promise.Promise(#(state, Terminal(backend_state))) {
   case terminal.draw(term, fn(frame) { build(frame, state, anim_state) }) {
     Ok(drawn) ->
-      promise.await(terminal.poll(drawn, poll_timeout_ms), fn(result) {
+      promise.await(terminal.poll(drawn, poll_timeout_ms(state)), fn(result) {
         case result {
           Ok(#(event, polled)) -> {
             let next = on_event(event, state)
@@ -470,7 +470,7 @@ pub fn run_buffered(
   render: fn(state, geometry.Rect) -> buffer.Buffer,
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
 ) -> promise.Promise(AppResult(state)) {
   drive_js(
     b,
@@ -489,7 +489,7 @@ pub fn run_animated(
   render: fn(state, geometry.Rect, anim.AnimState) -> buffer.Buffer,
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
 ) -> promise.Promise(AppResult(state)) {
   drive_js(
     b,
@@ -509,7 +509,7 @@ pub fn run_buffered_cursor(
     #(buffer.Buffer, Result(geometry.Position, Nil)),
   on_event: fn(InputEvent, state) -> state,
   should_quit: fn(state) -> Bool,
-  poll_timeout_ms: Int,
+  poll_timeout_ms: fn(state) -> Int,
 ) -> promise.Promise(AppResult(state)) {
   drive_js(
     b,

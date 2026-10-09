@@ -8,7 +8,7 @@
 /// import etui/backend/default
 ///
 /// pub fn main() {
-///   let _ = app.run_animated(default.new(), model, render, update, quit, 16)
+///   let _ = app.run_animated(default.new(), model, render, update, quit, fn(_) { 16 })
 /// }
 /// ```
 import etui/backend

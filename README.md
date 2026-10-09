@@ -76,7 +76,7 @@ pub fn main() {
       view,
       update,
       fn(m) { m.count >= 10 },
-      16,
+      fn(_) { 16 },
     )
 }
 
@@ -224,7 +224,7 @@ app.run_buffered(
   fn(m, screen) { /* build buffer */ },
   fn(ev, m) { /* update model */ },
   fn(m) { m.quit },
-  16,
+  fn(_) { 16 },
 )
 ```
 
