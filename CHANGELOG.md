@@ -137,10 +137,9 @@ Most of these fail to compile, so the compiler points at them:
   that is still empty now takes the grapheme, which gets a row of its own.
   `text.wrap` already did this.
 - **Wrapping was quadratic.** `span.wrap_line` measured and re-joined the rest of
-  a long word on every row. A word is now cut in one pass over its graphemes.
-  A zero-width grapheme at the end of a full row stays on that row.
-  `text.wrap` rebuilt the line it was assembling on every word, which made it
-  five times slower than the styled wrapper.
+  a long word on every row, and `text.wrap` rebuilt the line it was assembling
+  on every word. A word is now cut in one pass over its graphemes, and a
+  zero-width grapheme at the end of a full row stays on that row.
 - **`buffer.clear` was quadratic.** Its inner loop appended to lists and copied
   strings. It is linear now.
 - **Escape and the first half of an escape sequence were confused.** A read that
@@ -202,16 +201,14 @@ Most of these fail to compile, so the compiler points at them:
   on Erlang, so the same program saw different mouse events on each.
 - **Diffing an unchanged frame is faster on JavaScript.** A cell is compared with
   itself far more often than with anything else, and identity settles that with a
-  pointer comparison. An unchanged 200x50 frame diffs in 54 us, down from 124 us
-  in 1.0. A full repaint takes 4.0 ms, down from 6.9 ms.
+  pointer comparison. The structural walk is left for cells that may differ.
 - **The space between two wrapped words took the style of the next word.** The
   styled wrapper drops the separating space at a line break and re-emits it
   between words on the same row, using the following word's style. An underline
   paints a space, so the line under a marked word started one cell early. The
   space now carries the style of its own span.
 - **Filling a buffer on JavaScript was quadratic.** The cell store copied the whole
-  array on every write, so a 200x50 fill took 35 ms. Writes are batched now, and
-  the same fill takes 2.4 ms.
+  array on every write. Writes are batched now.
 - **Keys were dropped when typing fast or pasting.** The backend turned a whole
   read into one `KeyPress`, so everything after the first key was lost, and a
   sequence split across two reads was mangled. Reads are now decoded into a queue
