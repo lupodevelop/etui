@@ -41,12 +41,12 @@ Small, but they will not compile silently:
 
 ### Added
 
-- **Frames are drawn atomically.** A frame that emits anything is wrapped in
+- **Synchronized output.** A frame that emits anything is wrapped in
   `BeginSynchronizedOutput` and `EndSynchronizedOutput` (DEC private mode 2026),
-  so the terminal keeps showing the old frame until the new one has arrived
-  instead of painting it halfway. A terminal without the mode ignores the
-  sequences. A frame with nothing to emit still emits nothing, and
-  `restore_ops` ends the mode first in case an app dies mid-frame.
+  so the terminal keeps the old frame on screen until the new one has arrived
+  instead of painting it halfway. A terminal that does not know the mode
+  ignores the sequences. A frame with nothing to emit still emits nothing, and
+  `restore_ops` ends the mode first, in case an app dies mid-frame.
 - **`backend.restore_sequence`, `restore_ops`, `op_to_ansi` and `ops_to_ansi`:**
   one definition of what an app sends the terminal, shared by every target and
   handed to the two places that cannot call Gleam — the shell watchdog and the
@@ -149,8 +149,8 @@ Small, but they will not compile silently:
 - **Closed input spun the Erlang backend.** The keyboard reader turned EOF into
   an empty chunk and asked again at once, which flooded the app with ticks, and
   the cleanup drain never finished with stdin closed. EOF and a failed read now
-  end the reader and reach the app as an I/O error, so the loop stops and the
-  terminal is restored.
+  end the reader, and `poll` returns an I/O error. The app loop treats that as
+  a quit and restores the terminal.
 - **Wide symbols below U+1F300 were one cell short.** ⌚ ☕ ⚡ ✅ ❌ ⭐ and the
   rest of the East Asian Wide symbols outside the CJK blocks measured one cell
   where terminals draw two, so everything after one on a row landed a column
@@ -169,14 +169,14 @@ Small, but they will not compile silently:
   so the terminal took Ctrl+S to pause output and the app never saw the key.
   The Erlang backend clears it on entry and restores what the terminal had on
   exit.
-- **An Escape key and a split escape sequence were told apart by luck.** A
-  read that ended mid-sequence was taken for Escape as soon as the next read
-  came back empty. A zero-wait poll or, on JavaScript, a resize wake is empty
-  at once, so the first half of an arrow key became Escape; and with a long
-  poll timeout a real Escape waited the whole timeout. The backends now wait
-  for the rest of a sequence for 40 ms from its last byte, whatever the
-  timeout, and only then call it Escape. A bracketed paste that stops mid-way
-  gets a second.
+- **Escape and the first half of an escape sequence were confused.** A read
+  that ended mid-sequence was turned into Escape as soon as the next read came
+  back empty. A zero-wait poll, or on JavaScript a resize wake, comes back empty
+  at once, so the first half of an arrow key became Escape. With a long poll
+  timeout the opposite happened: a real Escape waited the whole timeout. The
+  backends now wait up to 40 ms after the last byte for the rest of a sequence,
+  whatever the timeout, and only then call it Escape. A bracketed paste that
+  stops mid-way waits one second.
 - **The Erlang buffer fill kept its own width table.** `etui_buffer_array_ffi`
   copied `text.codepoint_cell_width` and the copy had drifted: it widened
   U+1F650..U+1F67F, which `text` measures at one cell. It now calls
@@ -296,9 +296,10 @@ Small, but they will not compile silently:
 
 ### Changed
 
-- **`buffer.diff` answers at once for the same `Buffer` term.** An app that
-  keeps its last frame and returns it unchanged skips the cell walk. Only a hit
-  is trusted: distinct buffers with equal cells still go through the full diff.
+- **`buffer.diff` returns at once for the same `Buffer` term.** An app that
+  keeps its last frame and returns it while nothing changes skips the cell
+  walk. Only a hit is trusted: distinct buffers with equal cells still go
+  through the full diff.
 - **`Min` and `Max` resolve differently.** They were sized by one pass that
   gave each `budget / count` and let `Fill` absorb the rest; they now take a
   weight-proportional share bounded by their floor and ceiling, settled

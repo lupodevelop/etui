@@ -157,7 +157,8 @@ instead.
 
 `InputEvent` gained `MouseDrag`, `MouseMove` and `Paste`. `RenderOp` gained
 `EnableBracketedPaste`, `DisableBracketedPaste`, `BeginSynchronizedOutput` and
-`EndSynchronizedOutput`. A `case` over either that was exhaustive without a `_ ->` arm no longer compiles; adding the arm, or
+`EndSynchronizedOutput`. A `case` over either that was exhaustive without a
+`_ ->` arm no longer compiles; adding the arm, or
 handling the new events, is the whole fix.
 
 `geometry.Flex` (which `FlexJustify` is now an alias of) gained `FlexEvenly`,
@@ -250,8 +251,18 @@ text.wrap("a\r\nb", 20)
 ⌚ ☕ ⚡ ✅ ❌ ⭐ and the other East Asian Wide symbols below U+1F300 measured one
 cell in 1.x and measure two now, which is how terminals draw them.
 `text.cell_width("⚡")` is `2`. The rest of those blocks (✦ ★ ◆ ☆) stays at one.
-A table laid out around one of these characters moves its border one column
-right, to where it should have been.
+Code that lays out text around one of these characters now counts two cells
+for it.
+
+### Keys, Escape and closed input
+
+- Ctrl+S and Ctrl+Q reach the app on the Erlang target. The terminal used to
+  keep them for flow control on macOS and pause the output.
+- A lone Escape is reported 40 ms after the key press, not after the whole poll
+  timeout. Escape followed by more bytes within that time is read as one
+  sequence, which a zero-wait poll used to split.
+- When stdin is closed, `poll` on the Erlang backend returns an I/O error and
+  the app loop ends. It used to spin on empty reads.
 
 ### Mouse tracking on the JavaScript targets
 

@@ -48,14 +48,14 @@ process belongs to — a pipe, some CI runners, a daemon — no watchdog is
 installed, because an orphan is detached from the session and `/dev/tty`
 means nothing to it.
 
-**A signal from outside.** In raw mode Ctrl+C is not a signal at all: ISIG is
-off, so it arrives as byte 3 and etui delivers it as the key `"ctrl+c"` for
-the app to handle. A signal sent from elsewhere (`kill -INT`) is a different
-matter: the BEAM reserves SIGINT for its own break handler and refuses
-`os:set_signal(sigint, handle)` unless the VM was started with `+B`, so the
-app is left at the break prompt with the terminal still borrowed. Measured on
-OTP 29; the fallback path in the code predates that and was written for the
-same refusal on OTP 28.
+**A signal.** On the JavaScript targets raw mode turns ISIG off, so Ctrl+C
+arrives as byte 3 and etui delivers it as the key `"ctrl+c"`. On the Erlang
+target ISIG stays on (measured on OTP 29): Ctrl+C is a SIGINT, and the BEAM
+reserves SIGINT for its own break prompt. It refuses
+`os:set_signal(sigint, handle)` unless the VM was started with `+B`, so the app
+is left at the break prompt with the terminal still borrowed. An Erlang app
+should therefore offer its own quit key and not depend on receiving `"ctrl+c"`.
+Ctrl+Q and Ctrl+S do reach it, see the section above.
 
 Start the VM with `+B` if an app should die on SIGINT:
 
