@@ -135,8 +135,8 @@ fn write_string(s: String) -> Nil {
   panic as "etui/backend/erlang requires the Erlang target"
 }
 
-// Why a read returned no bytes. A timeout may simply be tried again; closed
-// input never will produce any, and the app has to be told.
+// Why a read returned no bytes. After a timeout the next read may succeed;
+// closed input will never produce any, so the app has to be told.
 type ReadFailure {
   ReadTimeout
   InputClosed

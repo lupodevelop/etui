@@ -130,11 +130,10 @@ pub fn codepoint_cell_width(cp: Int) -> Int {
 ///
 /// Misc Symbols and Dingbats mix characters that are one cell (✦ ★ ◆ ☆,
 /// Ambiguous) with ones every terminal draws in two (⚡ ✅ ❌ ⭐), so the block
-/// cannot decide and a per-block range was tried and reverted. The East Asian
-/// Width property does decide, one code point at a time, and it is what a
-/// terminal's own `wcwidth` follows. These are its Wide (W) runs below
-/// U+1F300 that lie outside the CJK ranges above. Regenerate them from
-/// EastAsianWidth.txt rather than editing by hand.
+/// cannot decide. The East Asian Width property does, one code point at a
+/// time, and a terminal's own `wcwidth` follows it. These are its Wide (W)
+/// runs below U+1F300 that lie outside the CJK ranges above. Regenerate them
+/// from EastAsianWidth.txt rather than editing by hand.
 fn symbol_width(cp: Int) -> Int {
   case cp {
     n if n >= 0x2329 && n <= 0x232A -> 2

@@ -1,16 +1,13 @@
-/// How long a half-read escape sequence may wait for its next byte.
+/// Deciding what a half-read escape sequence is.
 ///
-/// A read that ends in the middle of a sequence leaves the bytes in `pending`.
-/// Whether they are the start of something or a lone Escape press cannot be
-/// told from the bytes alone, only from how long nothing followed. The old rule
-/// was "the read came back empty", which is wrong both ways: a zero-wait poll
-/// or a resize wake is empty at once, and turned the first half of a sequence
-/// into Escape; a long idle timeout made a real Escape wait the whole timeout.
+/// A read can end in the middle of a sequence, and the bytes left over are
+/// either its start or a lone Escape press. The bytes cannot say which; only
+/// how long nothing followed can. So pending bytes carry the time they arrived,
+/// a read waits no longer than the deadline for them, and an empty read turns
+/// them into Escape only once the deadline has passed. An empty read before
+/// that (a zero-wait poll, a resize wake) keeps them.
 ///
-/// So the wait is the poll's timeout capped at a deadline measured from when
-/// the bytes arrived, and an empty read means Escape only once that deadline
-/// has passed. Pure, so every backend shares it and it is tested without a
-/// terminal.
+/// Pure, so the three backends share it and it is tested without a terminal.
 import etui/backend.{type InputEvent}
 import etui/input
 import gleam/int
