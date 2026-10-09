@@ -160,6 +160,10 @@ Small, but they will not compile silently:
 - **Wrapping a long word was quadratic.** Each row measured and re-joined all of
   the word that was left. A word is now cut into rows in one pass over its
   graphemes. A zero-width grapheme at the end of a full row stays on that row.
+- **Ctrl+S froze the terminal on macOS.** OTP raw mode can leave `IXON` set,
+  so the terminal took Ctrl+S to pause output and the app never saw the key.
+  The Erlang backend clears it on entry and restores what the terminal had on
+  exit.
 - **An Escape key and a split escape sequence were told apart by luck.** A
   read that ended mid-sequence was taken for Escape as soon as the next read
   came back empty. A zero-wait poll or, on JavaScript, a resize wake is empty

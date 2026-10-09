@@ -22,6 +22,15 @@ every target and by the two places that cannot call Gleam at all:
 It is unconditional. Asking a terminal to leave a mode it was never in costs
 nothing, and cleanup runs when the state is least trustworthy.
 
+## Ctrl+S and Ctrl+Q
+
+On POSIX the Erlang backend clears `IXON` when it enters raw mode, because
+OTP can leave it on (macOS does) and the terminal would then keep Ctrl+S and
+Ctrl+Q for itself, pausing output instead of delivering the keys. The setting
+the terminal had is read first and put back after `stty sane`, so a shell that
+runs with flow control off stays that way. The shell watchdog only runs
+`stty sane`, so after a hard kill flow control is whatever `sane` makes it.
+
 ## The ways an app ends
 
 **Its own loop.** `terminal.restore` (or `backend.cleanup`, or the end of
