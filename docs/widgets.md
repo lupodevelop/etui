@@ -45,7 +45,8 @@ let para =
 paragraph.render(buf, area, para)
 ```
 
-CJK text wraps on character boundaries. Explicit `\n` forces a new line.
+CJK text wraps on character boundaries. Explicit `\n` forces a new line. A
+character wider than the area gets a row to itself.
 
 ---
 

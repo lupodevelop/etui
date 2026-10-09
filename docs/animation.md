@@ -152,3 +152,7 @@ fn update(event: backend.InputEvent, model: Model) -> Model {
   }
 }
 ```
+
+Run it with `app.run_animated`, which passes the `AnimState` to `render` as a
+third argument. The last argument is the poll timeout, a `fn(state) -> Int`;
+a constant is `fn(_) { 16 }`.

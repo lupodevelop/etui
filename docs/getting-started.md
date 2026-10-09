@@ -57,8 +57,16 @@ app.run_buffered(
   view_fn,       // fn(model, Rect) -> Buffer
   update_fn,     // fn(InputEvent, model) -> model
   quit_fn,       // fn(model) -> Bool, return True to exit
-  fn(_) { poll_ms }, // event poll interval in milliseconds
+  fn(_) { poll_ms }, // poll timeout: fn(state) -> Int, in milliseconds
 )
+```
+
+The poll timeout is a function of the state, called before each poll. A
+constant is `fn(_) { 16 }`. An app that is busy can poll fast and an idle one
+slowly:
+
+```gleam
+fn(model) { case model.busy { True -> 16  False -> 100 } }
 ```
 
 ### InputEvent
@@ -87,6 +95,10 @@ minor releases, and did in 2.0.
 | `run_animated` | Spinners / marquees: receives `AnimState` each frame |
 | `run` | Low-level: you emit `List(RenderOp)` yourself |
 
+Returning the previous `Buffer` unchanged makes that frame free: `buffer.diff`
+answers at once for the same term. A frame that emits output is wrapped in
+synchronized output (DEC mode 2026), so the terminal does not paint it halfway.
+
 On the **JavaScript** target (Node), these return `Promise(AppResult(_))` instead of `AppResult`.
 
 ### Keyboard handling with `keys.match`
@@ -113,6 +125,11 @@ fn update(event: backend.InputEvent, model: Model) -> Model {
 }
 ```
 
+A lone Escape is decided 40 ms after its last byte, so an arrow key split across
+two reads is not taken for Escape. An unfinished bracketed paste waits 1 s.
+Ctrl+S and Ctrl+Q reach the app: the Erlang backend clears `IXON` on entry and
+restores it on exit.
+
 A modified named key — `"shift+left"`, `"ctrl+down"` — is `Unknown` to
 `keys.match`, because it is not a character. Use `keys.parse` when you want
 the modifier as data:
@@ -130,6 +147,9 @@ case keys.parse(raw) {
 All four app loops wrap the event loop in Erlang `try...after` via FFI. If
 `view_fn` or `update_fn` raises, the terminal is restored — raw mode off, alt
 screen left, cursor back — before the exception propagates.
+
+Closed stdin ends the Erlang backend with an I/O error. The loop stops and the
+terminal is restored, as it is for a raised exception.
 
 `erlang:halt`, a `kill -9` or any other end that unwinds nothing runs no Gleam
 code at all. An orphan shell process, started when the app entered raw mode,

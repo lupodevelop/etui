@@ -110,8 +110,6 @@ Small, but they will not compile silently:
   event the way it arrived so `parse` round-trips.
 - **`list.settle` and `table.settle`:** the state a widget will settle on for a
   given height, so a scroll offset can persist between frames.
-- **`buffer.blit/4` and `buffer.set_style/3`.**
-
 - **`buffer.blit/4`:** copy a window of one buffer into another, clipped
   against both. Composite an off-screen canvas or a cached panel into the frame
   without walking cells from the caller.
@@ -314,8 +312,8 @@ Small, but they will not compile silently:
 - **`geometry.inner` follows ratatui's saturation rule:** the origin moves in
   by the margin unconditionally and only the size saturates.
 - **`Flex` is the type's name,** with `FlexJustify` kept as an alias.
-- **`text.wrap` and `buffer.clear` are O(n):** both had quadratic accumulation
-  (list appends, string copies) in their inner loops.
+- **`buffer.clear` is O(n):** it had quadratic accumulation (list appends,
+  string copies) in its inner loop. `text.wrap` is under Fixed.
 - **CI runs the suite on JavaScript as well as Erlang.** Only a smoke app ran
   there before, which is why the two targets could diverge unnoticed.
 

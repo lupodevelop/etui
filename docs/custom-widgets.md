@@ -150,7 +150,8 @@ fn custom_render(buf: buffer.Buffer, area: geometry.Rect) -> buffer.Buffer {
 }
 ```
 
-`buffer.set_string` writes a string left-to-right starting at `pos`, respecting cell widths for wide characters. Wide chars leave a `Continuation` cell automatically.
+`buffer.set_string` writes a string left-to-right starting at `pos`, respecting cell widths for wide characters. Wide chars leave a `Continuation` cell automatically. Symbols below U+1F300
+such as ⚡ ✅ ❌ ⭐ take two cells; ✦ ★ ◆ ☆ take one.
 
 ## Testing custom widgets
 
