@@ -137,6 +137,15 @@ Small, but they will not compile silently:
 
 ### Fixed
 
+- **The styled wrapper never returned for a grapheme wider than the row.** At
+  a width of 1 a CJK character or an emoji fits nowhere, so `span.wrap_line`
+  put the same word back and tried again. A row that is still empty now always
+  takes the grapheme in front of it, so such a grapheme gets a row of its own
+  and is the only thing that can make a row wider than asked. `text.wrap`
+  already did this.
+- **Wrapping a long word was quadratic.** Each row measured and re-joined all of
+  the word that was left. A word is now cut into rows in one pass over its
+  graphemes. A zero-width grapheme at the end of a full row stays on that row.
 - **The Erlang buffer fill kept its own width table.** `etui_buffer_array_ffi`
   copied `text.codepoint_cell_width` and the copy had drifted: it widened
   U+1F650..U+1F67F, which `text` measures at one cell. It now calls
