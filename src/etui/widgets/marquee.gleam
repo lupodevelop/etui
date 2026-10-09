@@ -82,9 +82,11 @@ pub fn render(
           // Double the unit so slicing across the wrap is trivial.
           let doubled = unit <> unit
           // Skip offset_cells cells using grapheme-accurate drop.
-          let skip_graphemes =
-            string.length(text.truncate(doubled, offset_cells, ""))
-          let available = string.drop_start(doubled, skip_graphemes)
+          let available =
+            text.drop_graphemes(
+              doubled,
+              string.length(text.truncate(doubled, offset_cells, "")),
+            )
           let padded = text.pad_right(available, area.size.width)
           let line = text.truncate(padded, area.size.width, "")
           buffer.set_string(

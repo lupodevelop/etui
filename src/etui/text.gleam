@@ -174,6 +174,26 @@ fn take_prefix(
   }
 }
 
+/// Return `s` without its first `n` graphemes.
+///
+/// Not spelled `string.drop_start`: on the JavaScript target that function
+/// measures the dropped prefix in UTF-8 bytes and then slices the string with
+/// that count, while `String.slice` counts UTF-16 units. The two agree on
+/// ASCII and disagree everywhere else — box drawing, CJK, emoji — where the
+/// index lands short of or past the end and the wrong remainder comes back
+/// (observed with gleam_stdlib 1.0.0). Graphemes in, graphemes out, on every
+/// target.
+pub fn drop_graphemes(s: String, n: Int) -> String {
+  case n <= 0 {
+    True -> s
+    False ->
+      s
+      |> string.to_graphemes
+      |> list.drop(n)
+      |> string.concat
+  }
+}
+
 /// Word-wrap to max_width cells.
 ///
 /// Line endings are normalised first: `\r\n` and lone `\r` both become `\n`.

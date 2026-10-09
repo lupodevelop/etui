@@ -299,3 +299,25 @@ pub fn graphemes_vs_cells_zwj_test() {
   list.length(gs) |> should.equal(1)
   text.cell_width(fam) |> should.equal(2)
 }
+
+// ─── drop_graphemes ────────────────────────────────────────────────
+// Regression: string.drop_start on the JavaScript target slices by a
+// UTF-8 byte count of the prefix, which desynchronises from UTF-16 code
+// units on any multi-byte content. These pin the safe replacement.
+
+pub fn drop_graphemes_multibyte_test() {
+  // 5 box-drawing chars dropped, 5 remain. drop_start returned "" here.
+  text.drop_graphemes("──────────", 5)
+  |> should.equal("─────")
+}
+
+pub fn drop_graphemes_cjk_keeps_the_rest_test() {
+  // Dropping 2 CJK graphemes must leave all 6, not a byte-sliced fragment.
+  text.drop_graphemes("你好世界你好世界", 2)
+  |> should.equal("世界你好世界")
+}
+
+pub fn drop_graphemes_zero_and_overflow_test() {
+  text.drop_graphemes("café", 0) |> should.equal("café")
+  text.drop_graphemes("café", 99) |> should.equal("")
+}

@@ -195,9 +195,6 @@ fn overlay_label(base: String, label: String, width: Int) -> String {
 fn drop_cells(s: String, n: Int) -> String {
   case n <= 0 {
     True -> s
-    False -> {
-      let prefix = text.truncate(s, n, "")
-      string.drop_start(s, string.length(prefix))
-    }
+    False -> text.drop_graphemes(s, string.length(text.truncate(s, n, "")))
   }
 }
