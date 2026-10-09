@@ -137,6 +137,10 @@ Small, but they will not compile silently:
 
 ### Fixed
 
+- **The Erlang buffer fill kept its own width table.** `etui_buffer_array_ffi`
+  copied `text.codepoint_cell_width` and the copy had drifted: it widened
+  U+1F650..U+1F67F, which `text` measures at one cell. It now calls
+  `text.codepoint_cell_width`, so there is one table.
 - **Cleanup threw on the JavaScript backends.** `exitRaw` in `node_ffi.mjs` and
   `browser_ffi.mjs` still referred to `escapeTimer` and `escapeBuffer`, which
   stopped existing when parsing moved to `etui/input`. Modules are strict, so

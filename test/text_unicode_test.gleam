@@ -3,6 +3,12 @@
 // combining marks (NFD), fullwidth, mixed content.
 // Exit criterion: cell_width matches what a modern terminal displays.
 
+@target(erlang)
+import etui/buffer
+@target(erlang)
+import etui/geometry
+@target(erlang)
+import etui/style
 import etui/text
 import gleam/list
 import gleam/string
@@ -320,4 +326,47 @@ pub fn drop_graphemes_cjk_keeps_the_rest_test() {
 pub fn drop_graphemes_zero_and_overflow_test() {
   text.drop_graphemes("café", 0) |> should.equal("café")
   text.drop_graphemes("café", 99) |> should.equal("")
+}
+
+// ─── One width table ───────────────────────────────────────────────
+//
+// On Erlang the buffer fills cells in a native module. It once kept its own
+// copy of the width table, and the copy widened U+1F650..U+1F67F, which
+// `text` leaves at one cell.
+
+@target(erlang)
+fn fill_width(cp: Int) -> Int {
+  let assert Ok(c) = string.utf_codepoint(cp)
+  let s = string.from_utf_codepoints([c])
+  let buf =
+    buffer.buffer_new_filled(
+      geometry.rect_new(0, 0, 4, 1),
+      s,
+      style.default_style(),
+    )
+  case buffer.is_continuation(buffer.get_cell(buf, geometry.Position(1, 0))) {
+    True -> 2
+    False -> 1
+  }
+}
+
+@target(erlang)
+fn check_fill(cp: Int, last: Int) -> Nil {
+  case cp > last {
+    True -> Nil
+    False -> {
+      case text.codepoint_cell_width(cp) {
+        0 -> Nil
+        w -> fill_width(cp) |> should.equal(w)
+      }
+      check_fill(cp + 1, last)
+    }
+  }
+}
+
+@target(erlang)
+pub fn buffer_fill_agrees_with_text_width_test() {
+  check_fill(0x1F000, 0x1FAFF)
+  check_fill(0x2E80, 0x3100)
+  check_fill(0xA000, 0xA4CF)
 }

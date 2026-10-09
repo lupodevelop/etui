@@ -165,49 +165,5 @@ grapheme_parts([FirstCp | _] = GList) ->
 fill_rev(0, _, Acc) -> Acc;
 fill_rev(N, V, Acc) -> fill_rev(N - 1, V, [V | Acc]).
 
-%% East Asian Width, mirrors text.gleam's codepoint_cell_width/1.
-cp_width(Cp) when Cp < 16#20         -> 0;
-cp_width(16#7F)                       -> 0;
-cp_width(Cp) when Cp >= 16#0300,
-                  Cp =< 16#036F      -> 0;  % combining diacritics
-cp_width(Cp) when Cp >= 16#1160,
-                  Cp =< 16#11FF      -> 0;  % Hangul medial/final combining
-cp_width(Cp) when Cp >= 16#FE00,
-                  Cp =< 16#FE0F      -> 0;  % variation selectors
-cp_width(Cp) when Cp >= 16#E0100,
-                  Cp =< 16#E01EF     -> 0;  % variation selectors ext.
-cp_width(16#200B)                     -> 0;
-cp_width(16#200C)                     -> 0;
-cp_width(16#200D)                     -> 0;
-cp_width(16#FEFF)                     -> 0;
-cp_width(Cp) when Cp >= 16#1100,
-                  Cp =< 16#115F      -> 2;  % Hangul Jamo initial
-cp_width(Cp) when Cp >= 16#2E80,
-                  Cp =< 16#303E      -> 2;  % CJK Radicals / Kangxi
-cp_width(Cp) when Cp >= 16#3041,
-                  Cp =< 16#33FF      -> 2;  % Hiragana/Katakana/CJK compat
-cp_width(Cp) when Cp >= 16#3400,
-                  Cp =< 16#4DBF      -> 2;  % CJK Extension A
-cp_width(Cp) when Cp >= 16#4E00,
-                  Cp =< 16#9FFF      -> 2;  % CJK Unified Ideographs
-cp_width(Cp) when Cp >= 16#A000,
-                  Cp =< 16#A4CF      -> 2;  % Yi
-cp_width(Cp) when Cp >= 16#AC00,
-                  Cp =< 16#D7A3      -> 2;  % Hangul Syllables
-cp_width(Cp) when Cp >= 16#F900,
-                  Cp =< 16#FAFF      -> 2;  % CJK Compatibility Ideographs
-cp_width(Cp) when Cp >= 16#FE30,
-                  Cp =< 16#FE4F      -> 2;  % CJK Compatibility Forms
-cp_width(Cp) when Cp >= 16#FF00,
-                  Cp =< 16#FF60      -> 2;  % Fullwidth Forms
-cp_width(Cp) when Cp >= 16#FFE0,
-                  Cp =< 16#FFE6      -> 2;  % Fullwidth Signs
-cp_width(Cp) when Cp >= 16#1F1E6,
-                  Cp =< 16#1F1FF     -> 2;  % Regional Indicators (flags)
-cp_width(Cp) when Cp >= 16#1F300,
-                  Cp =< 16#1FAFF     -> 2;  % Emoji (misc/pictographs/etc.)
-cp_width(Cp) when Cp >= 16#20000,
-                  Cp =< 16#2FFFD     -> 2;  % CJK Extensions B–F
-cp_width(Cp) when Cp >= 16#30000,
-                  Cp =< 16#3FFFD     -> 2;  % CJK Extension G+
-cp_width(_)                           -> 1.
+%% One width table: text.gleam's. A second copy here drifted once already.
+cp_width(Cp) -> 'etui@text':codepoint_cell_width(Cp).
