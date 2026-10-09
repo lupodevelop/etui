@@ -173,3 +173,7 @@ function parseSgrMouse(payload) {
   const btn = [new MouseLeft(), new MouseMiddle(), new MouseRight()][cb % 4] ?? new MouseLeft();
   return isPress ? new MousePress(x, y, btn) : new MouseRelease(x, y, btn);
 }
+
+export function monotonicMs() {
+  return Math.floor(performance.now());
+}

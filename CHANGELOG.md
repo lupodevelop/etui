@@ -160,6 +160,14 @@ Small, but they will not compile silently:
 - **Wrapping a long word was quadratic.** Each row measured and re-joined all of
   the word that was left. A word is now cut into rows in one pass over its
   graphemes. A zero-width grapheme at the end of a full row stays on that row.
+- **An Escape key and a split escape sequence were told apart by luck.** A
+  read that ended mid-sequence was taken for Escape as soon as the next read
+  came back empty. A zero-wait poll or, on JavaScript, a resize wake is empty
+  at once, so the first half of an arrow key became Escape; and with a long
+  poll timeout a real Escape waited the whole timeout. The backends now wait
+  for the rest of a sequence for 40 ms from its last byte, whatever the
+  timeout, and only then call it Escape. A bracketed paste that stops mid-way
+  gets a second.
 - **The Erlang buffer fill kept its own width table.** `etui_buffer_array_ffi`
   copied `text.codepoint_cell_width` and the copy had drifted: it widened
   U+1F650..U+1F67F, which `text` measures at one cell. It now calls

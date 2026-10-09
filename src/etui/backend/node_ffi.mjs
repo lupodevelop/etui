@@ -73,6 +73,10 @@ function drainResolvers() {
   }
 }
 
+export function monotonicMs() {
+  return Math.floor(performance.now());
+}
+
 // ─── Reading ──────────────────────────────────────────────────────
 
 /// The bytes waiting to be read, or "" if none arrived before the timeout.

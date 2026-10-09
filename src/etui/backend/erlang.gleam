@@ -4,7 +4,7 @@ import etui/backend.{
   type Error, type InputEvent, type RenderOp, type TerminalSize, ClearScreen,
   EnableBracketedPaste, EnableMouse, EnterAltScreen, IOError, Write,
 }
-import etui/input
+import etui/backend/pending_input
 import gleam/list
 import gleam/result
 
@@ -25,6 +25,8 @@ pub opaque type ErlangTerminalState {
     /// Bytes read but not yet forming a complete escape sequence. Prepended
     /// to the next read.
     pending: String,
+    /// Monotonic ms at which `pending` was last added to, see `pending_input`.
+    pending_since: Int,
     /// Events decoded but not yet handed to the app. One read can produce
     /// many; `poll` returns one per call and keeps the rest here.
     queue: List(InputEvent),
@@ -42,6 +44,7 @@ pub fn blank_state() -> ErlangTerminalState {
     last_size_check: 0,
     last_size_change: 0,
     pending: "",
+    pending_since: 0,
     queue: [],
   )
 }
@@ -199,6 +202,7 @@ fn init_terminal(opts: backend.Options) -> Result(ErlangTerminalState, Error) {
         // exactly when a terminal may still be settling its geometry.
         last_size_change: monotonic_ms_ffi(),
         pending: "",
+        pending_since: 0,
         queue: [],
       ))
     }
@@ -238,12 +242,21 @@ fn poll_input(
   case state.queue {
     [event, ..rest] -> Ok(#(event, ErlangTerminalState(..state, queue: rest)))
     [] -> {
-      use #(input_events, pending) <- result.try(read_events(state, timeout_ms))
+      use #(input_events, pending, since) <- result.try(read_events(
+        state,
+        timeout_ms,
+      ))
       let #(sized, resize_events) = check_resize(state)
       // Resize first: the app should lay out at the new size before it
       // processes keys that were typed during the resize. Both are delivered,
       // which is the point, the old code returned Resize *instead of* the key.
-      let next = ErlangTerminalState(..sized, pending: pending, queue: [])
+      let next =
+        ErlangTerminalState(
+          ..sized,
+          pending: pending,
+          pending_since: since,
+          queue: [],
+        )
       case list.append(resize_events, input_events) {
         [] -> Ok(#(backend.Tick, next))
         [event, ..rest] ->
@@ -256,17 +269,26 @@ fn poll_input(
 fn read_events(
   state: ErlangTerminalState,
   timeout_ms: Int,
-) -> Result(#(List(InputEvent), String), Error) {
-  case read_with_timeout_ffi(timeout_ms) {
-    Ok(chunk) -> {
-      let input.Parsed(events, pending) = input.parse(state.pending <> chunk)
-      Ok(#(events, pending))
-    }
-    // The read timed out, so nothing more is coming: a pending remainder is a
-    // real Escape press rather than the start of a sequence.
-    Error(ReadTimeout) -> Ok(#(input.flush(state.pending), ""))
+) -> Result(#(List(InputEvent), String, Int), Error) {
+  let wait =
+    pending_input.read_wait(
+      state.pending,
+      state.pending_since,
+      monotonic_ms_ffi(),
+      timeout_ms,
+    )
+  let chunk = case read_with_timeout_ffi(wait) {
+    Ok(chunk) -> Ok(chunk)
+    Error(ReadTimeout) -> Ok("")
     Error(InputClosed) -> Error(IOError("terminal input is closed"))
   }
+  use chunk <- result.map(chunk)
+  pending_input.decode(
+    state.pending,
+    state.pending_since,
+    chunk,
+    monotonic_ms_ffi(),
+  )
 }
 
 fn check_resize(
