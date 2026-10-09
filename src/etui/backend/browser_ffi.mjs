@@ -2,7 +2,7 @@
 // Call setup(term) with an xterm.js Terminal instance BEFORE calling main().
 // Key normalisation is identical to node_ffi.mjs so keys.match works the same.
 
-import { toList } from "../../gleam.mjs";
+import { Ok, toList } from "../../gleam.mjs";
 
 // ─── State ───────────────────────────────────────────────────────
 

@@ -6,7 +6,7 @@
 // the JavaScript target came to be missing modified keys, bracketed paste and
 // mouse drags long after the Erlang one had them.
 
-import { toList } from "../../gleam.mjs";
+import { Ok, toList } from "../../gleam.mjs";
 
 // ─── State ───────────────────────────────────────────────────────
 

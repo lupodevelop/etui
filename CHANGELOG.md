@@ -146,6 +146,10 @@ Small, but they will not compile silently:
 
 ### Fixed
 
+- **The Node and browser backends could not start.** `node_ffi.mjs` and
+  `browser_ffi.mjs` built `new Ok(...)` in `windowSize` without importing `Ok`,
+  so initialising either backend threw a `ReferenceError`. No test started a
+  backend, only pure functions ran.
 - **Closed input spun the Erlang backend.** The keyboard reader turned EOF into
   an empty chunk and asked again at once, which flooded the app with ticks, and
   the cleanup drain never finished with stdin closed. EOF and a failed read now
