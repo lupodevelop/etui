@@ -133,6 +133,10 @@ Small, but they will not compile silently:
 
 ### Fixed
 
+- **Cleanup threw on the JavaScript backends.** `exitRaw` in `node_ffi.mjs` and
+  `browser_ffi.mjs` still referred to `escapeTimer` and `escapeBuffer`, which
+  stopped existing when parsing moved to `etui/input`. Modules are strict, so
+  every cleanup ended in a `ReferenceError`.
 - **The JavaScript target had none of the input work.** `node_ffi.mjs` and
   `browser_ffi.mjs` each carried a JavaScript reimplementation of the key
   normalisation, announced as mirroring the Erlang one. It stopped mirroring

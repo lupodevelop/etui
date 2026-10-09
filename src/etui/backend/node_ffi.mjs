@@ -34,11 +34,6 @@ export function exitRaw() {
     process.stdin.pause();
     rawModeActive = false;
   }
-  if (escapeTimer !== null) {
-    clearTimeout(escapeTimer);
-    escapeTimer = null;
-    escapeBuffer = null;
-  }
 }
 
 export function writeStdout(s) {

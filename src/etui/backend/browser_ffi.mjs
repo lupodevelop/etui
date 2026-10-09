@@ -27,13 +27,7 @@ export function setup(xtermTerminal) {
 
 export function enterRaw() {}   // xterm.js is always in "raw" mode
 
-export function exitRaw() {
-  if (escapeTimer !== null) {
-    clearTimeout(escapeTimer);
-    escapeTimer = null;
-    escapeBuffer = null;
-  }
-}
+export function exitRaw() {}
 
 export function writeStdout(s) {
   term?.write(s);
