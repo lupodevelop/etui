@@ -260,3 +260,8 @@ pub fn the_new_pieces_the_guide_names_exist_test() {
   |> fn(s) { s != "" }
   |> should.equal(True)
 }
+
+pub fn a_wide_symbol_is_two_cells_test() {
+  text.cell_width("⚡") |> should.equal(2)
+  text.cell_width("✦") |> should.equal(1)
+}

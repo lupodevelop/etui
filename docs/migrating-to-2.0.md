@@ -236,6 +236,14 @@ text.wrap("a\r\nb", 20)
 // 2.0.0: ["a", "b"]
 ```
 
+### Some symbols are two cells
+
+⌚ ☕ ⚡ ✅ ❌ ⭐ and the other East Asian Wide symbols below U+1F300 measured one
+cell in 1.x and measure two now, which is how terminals draw them.
+`text.cell_width("⚡")` is `2`. The rest of those blocks (✦ ★ ◆ ☆) stays at one.
+A table laid out around one of these characters moves its border one column
+right, to where it should have been.
+
 ### Mouse tracking on the JavaScript targets
 
 `EnableMouse` used to emit `?1000h ?1002h ?1006h` on Node and in the browser

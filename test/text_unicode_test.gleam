@@ -370,3 +370,15 @@ pub fn buffer_fill_agrees_with_text_width_test() {
   check_fill(0x2E80, 0x3100)
   check_fill(0xA000, 0xA4CF)
 }
+
+// ─── Wide symbols below U+1F300 ────────────────────────────────────
+
+pub fn wide_symbols_are_two_cells_test() {
+  ["⌚", "☕", "⚡", "✅", "❌", "⭐", "⭕", "〈", "🀄", "🆗"]
+  |> list.each(fn(s) { text.cell_width(s) |> should.equal(2) })
+}
+
+pub fn ambiguous_symbols_stay_one_cell_test() {
+  ["✦", "★", "◆", "☆", "☺", "❤", "✔", "♥"]
+  |> list.each(fn(s) { text.cell_width(s) |> should.equal(1) })
+}

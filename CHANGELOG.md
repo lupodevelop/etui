@@ -137,6 +137,11 @@ Small, but they will not compile silently:
 
 ### Fixed
 
+- **Wide symbols below U+1F300 were one cell short.** ⌚ ☕ ⚡ ✅ ❌ ⭐ and the
+  rest of the East Asian Wide symbols outside the CJK blocks measured one cell
+  where terminals draw two, so everything after one on a row landed a column
+  left of the cursor. They are listed by code point, since the block cannot
+  tell them from ✦ ★ ◆ ☆.
 - **The styled wrapper never returned for a grapheme wider than the row.** At
   a width of 1 a CJK character or an emoji fits nowhere, so `span.wrap_line`
   put the same word back and tried again. A row that is still empty now always
