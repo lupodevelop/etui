@@ -28,6 +28,7 @@ pub type Tabs {
 // ─────────────────────────────────────────────────────────────────
 // Constructors
 
+/// A tab bar with bold+reverse active style and `│` dividers.
 pub fn tabs_new(labels: List(String)) -> Tabs {
   Tabs(
     labels: labels,
@@ -46,33 +47,40 @@ pub fn tabs_new(labels: List(String)) -> Tabs {
   )
 }
 
+/// Select the tab at `idx`. Negative indices clamp to 0.
 pub fn with_active(t: Tabs, idx: Int) -> Tabs {
   Tabs(..t, active: int.max(0, idx))
 }
 
+/// Style of the selected tab (default: bold + reverse).
 pub fn with_active_style(t: Tabs, s: style.Style) -> Tabs {
   Tabs(..t, active_style: s)
 }
 
+/// String drawn between adjacent tabs (default `"│"`; use `" "` to hide).
 pub fn with_divider(t: Tabs, div: String) -> Tabs {
   Tabs(..t, divider: div)
 }
 
+/// Blank cells inside each tab label. Clamped to ≥ 0.
 pub fn with_padding(t: Tabs, p: Int) -> Tabs {
   Tabs(..t, padding: int.max(0, p))
 }
 
+/// Colors of inactive tabs and the divider.
 pub fn with_colors(t: Tabs, fg: style.Color, bg: style.Color) -> Tabs {
   Tabs(..t, fg: fg, bg: bg)
 }
 
 // Tab navigation helpers
 
+/// Advance one tab, wrapping past the end.
 pub fn next_tab(t: Tabs) -> Tabs {
   let n = list.length(t.labels)
   Tabs(..t, active: { t.active + 1 } % int.max(1, n))
 }
 
+/// Go back one tab, wrapping before the start.
 pub fn prev_tab(t: Tabs) -> Tabs {
   let n = int.max(1, list.length(t.labels))
   Tabs(..t, active: { t.active - 1 + n } % n)

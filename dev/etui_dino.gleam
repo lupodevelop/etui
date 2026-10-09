@@ -670,7 +670,7 @@ pub fn main() -> Nil {
       render,
       update,
       fn(m) { m.quit },
-      50,
+      fn(_) { 50 },
     )
   Nil
 }

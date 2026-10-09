@@ -37,6 +37,7 @@ pub type Shape {
   Mandelbrot(max_iter: Int)
 }
 
+/// The shapes drawn into one canvas, back to front.
 pub type Scene {
   Scene(shapes: List(Shape), bg: style.Color)
 }
@@ -44,10 +45,12 @@ pub type Scene {
 // ─────────────────────────────────────────────────────────────────
 // Constructors
 
+/// A scene with the default background.
 pub fn scene_new(shapes: List(Shape)) -> Scene {
   Scene(shapes: shapes, bg: style.Default)
 }
 
+/// Color of cells no shape touched.
 pub fn with_bg(s: Scene, bg: style.Color) -> Scene {
   Scene(..s, bg: bg)
 }

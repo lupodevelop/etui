@@ -5,8 +5,8 @@
 ///   - CJK / Hangul / Hiragana / Katakana / Fullwidth: 2 cells
 ///   - Emoji (including ZWJ sequences): 2 cells (first codepoint rule)
 ///   - Combining marks, ZWJ, variation selectors, zero-width formatters: 0 cells
-///   - Ambiguous characters (Misc Symbols U+2600–26FF, Dingbats U+2700–27BF):
-///     treated as 1 cell, monospace terminals render them narrow.
+///   - Misc Symbols U+2600–26FF and Dingbats U+2700–27BF: 1 cell, except the
+///     East Asian Wide ones (⚡ ✅ ❌ ⭐ ...), which are 2.
 ///
 /// Grapheme segmentation delegates to Erlang's native Unicode (UAX #29).
 /// This correctly clusters ZWJ sequences, flag pairs, and combining marks.
@@ -95,11 +95,10 @@ pub fn codepoint_cell_width(cp: Int) -> Int {
     n if n >= 0xFFE0 && n <= 0xFFE6 -> 2
 
     // ── Emoji ──────────────────────────────────────────────────────
-    // Note: Misc Symbols (0x2600..0x26FF) and Dingbats (0x2700..0x27BF) are
-    // NOT included here. Most chars in those ranges (✦ ★ ◆ ☆ etc.) are
-    // rendered as 1 cell in monospace terminals (Ambiguous/Neutral per
-    // Unicode East Asian Width). Treating them as 2 cells caused buffer
-    // positions to drift past the actual cursor.
+    // Misc Symbols (0x2600..0x26FF) and Dingbats (0x2700..0x27BF) are not
+    // ranges here: most of them (✦ ★ ◆ ☆) are one cell, and treating the block
+    // as wide made buffer positions drift past the cursor. `symbol_width`
+    // below picks out the wide ones.
     // Regional Indicator Symbols (flags pair into 2 cells)
     n if n >= 0x1F1E6 && n <= 0x1F1FF -> 2
     // Misc Symbols and Pictographs
@@ -122,6 +121,64 @@ pub fn codepoint_cell_width(cp: Int) -> Int {
     // CJK Extensions B, C, D, E, F, G
     n if n >= 0x20000 && n <= 0x2FFFD -> 2
     n if n >= 0x30000 && n <= 0x3FFFD -> 2
+
+    n -> symbol_width(n)
+  }
+}
+
+/// Width of the East Asian Wide symbols that no block above covers.
+///
+/// Misc Symbols and Dingbats mix characters that are one cell (✦ ★ ◆ ☆,
+/// Ambiguous) with ones every terminal draws in two (⚡ ✅ ❌ ⭐), so the block
+/// cannot decide. The East Asian Width property does, one code point at a
+/// time, and a terminal's own `wcwidth` follows it. These are its Wide (W)
+/// runs below U+1F300 that lie outside the CJK ranges above. Regenerate them
+/// from EastAsianWidth.txt rather than editing by hand.
+fn symbol_width(cp: Int) -> Int {
+  case cp {
+    n if n >= 0x2329 && n <= 0x232A -> 2
+    n if n >= 0x231A && n <= 0x231B -> 2
+    n if n >= 0x23E9 && n <= 0x23EC -> 2
+    n if n >= 0x25FD && n <= 0x25FE -> 2
+    n if n >= 0x2614 && n <= 0x2615 -> 2
+    n if n >= 0x2648 && n <= 0x2653 -> 2
+    n if n >= 0x26AA && n <= 0x26AB -> 2
+    n if n >= 0x26BD && n <= 0x26BE -> 2
+    n if n >= 0x26C4 && n <= 0x26C5 -> 2
+    n if n >= 0x26F2 && n <= 0x26F3 -> 2
+    n if n >= 0x270A && n <= 0x270B -> 2
+    n if n >= 0x2753 && n <= 0x2755 -> 2
+    n if n >= 0x2795 && n <= 0x2797 -> 2
+    n if n >= 0x2B1B && n <= 0x2B1C -> 2
+    0x23F0
+    | 0x23F3
+    | 0x267F
+    | 0x2693
+    | 0x26A1
+    | 0x26CE
+    | 0x26D4
+    | 0x26EA
+    | 0x26F5
+    | 0x26FA
+    | 0x26FD
+    | 0x2705
+    | 0x2728
+    | 0x274C
+    | 0x274E
+    | 0x2757
+    | 0x27B0
+    | 0x27BF
+    | 0x2B50
+    | 0x2B55 -> 2
+
+    // Mahjong, playing cards, and the enclosed squares and ideographs.
+    0x1F004 | 0x1F0CF | 0x1F18E -> 2
+    n if n >= 0x1F191 && n <= 0x1F19A -> 2
+    n if n >= 0x1F200 && n <= 0x1F202 -> 2
+    n if n >= 0x1F210 && n <= 0x1F23B -> 2
+    n if n >= 0x1F240 && n <= 0x1F248 -> 2
+    n if n >= 0x1F250 && n <= 0x1F251 -> 2
+    n if n >= 0x1F260 && n <= 0x1F265 -> 2
 
     _ -> 1
   }
@@ -171,6 +228,26 @@ fn take_prefix(
         False -> acc
       }
     }
+  }
+}
+
+/// Return `s` without its first `n` graphemes.
+///
+/// Not spelled `string.drop_start`: on the JavaScript target that function
+/// measures the dropped prefix in UTF-8 bytes and then slices the string with
+/// that count, while `String.slice` counts UTF-16 units. The two agree on
+/// ASCII and disagree everywhere else — box drawing, CJK, emoji — where the
+/// index lands short of or past the end and the wrong remainder comes back
+/// (observed with gleam_stdlib 1.0.0). Graphemes in, graphemes out, on every
+/// target.
+pub fn drop_graphemes(s: String, n: Int) -> String {
+  case n <= 0 {
+    True -> s
+    False ->
+      s
+      |> string.to_graphemes
+      |> list.drop(n)
+      |> string.concat
   }
 }
 

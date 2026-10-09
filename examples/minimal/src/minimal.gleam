@@ -17,7 +17,7 @@ pub fn main() {
       view,
       update,
       fn(m) { m.quit },
-      16,
+      fn(_) { 16 },
     )
 }
 

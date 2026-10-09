@@ -29,11 +29,16 @@ try_(Fun) ->
 %% prim_tty:init call, no linked-process conflicts.
 enter_raw() ->
     remember_tty_path(),
+    remember_flow_control(),
     case shell:start_interactive({noshell, raw}) of
         ok                      -> ok;
         {error, already_started} -> ok;
         _                       -> ok
-    end.
+    end,
+    %% OTP raw mode can leave IXON on, notably on macOS, and the terminal then
+    %% eats Ctrl+S and Ctrl+Q to pause output instead of passing them on.
+    stty("-ixon"),
+    ok.
 
 %% Restore cooked mode via stty(1).  Drain buffered mouse/key events first
 %% so they don't leak into the shell after we exit raw mode.
@@ -44,22 +49,42 @@ exit_raw() ->
     drain_input(50),
     try_(fun() -> shell:start_interactive({noshell, cooked}) end),
     try_(fun() -> io:setopts(user, [{echo, true}, {binary, false}]) end),
-    stty_sane(),
+    stty("sane"),
+    restore_flow_control(),
     ok.
 
 %% stty acts on its standard input, and os:cmd/1 runs a command with stdin
 %% redirected from /dev/null: a bare `os:cmd("stty sane")` therefore reset the
 %% modes of /dev/null and left the terminal exactly as it was. Point it at the
 %% controlling terminal explicitly.
-stty_sane() ->
+stty(Args) ->
     case posix() of
-        false -> ok;
+        false -> "";
         true ->
             Path = shell_quote(tty_path()),
-            try_(fun() ->
-                os:cmd("stty sane < " ++ Path ++ " > " ++ Path ++ " 2>/dev/null")
-            end),
-            ok
+            case try_(fun() ->
+                os:cmd("stty " ++ Args ++ " < " ++ Path ++ " 2>/dev/null")
+            end) of
+                Out when is_list(Out) -> Out;
+                _ -> ""
+            end
+    end.
+
+%% `stty sane` turns IXON on, which would undo a shell that had it off, so
+%% what the user had is put back once the terminal is handed over.
+remember_flow_control() ->
+    Tokens = string:tokens(stty("-a"), " ;\n"),
+    Was = case {lists:member("-ixon", Tokens), lists:member("ixon", Tokens)} of
+        {true, _} -> "-ixon";
+        {_, true} -> "ixon";
+        _ -> undefined
+    end,
+    persistent_term:put(etui_ixon_was, Was).
+
+restore_flow_control() ->
+    case persistent_term:get(etui_ixon_was, undefined) of
+        undefined -> ok;
+        Was -> stty(Was), ok
     end.
 
 %% Write terminal restore sequences directly to /dev/tty.
@@ -74,7 +99,7 @@ write_cleanup(Seq) ->
     ok.
 
 %% Read and discard all data in the tty input buffer.
-%% Keeps spawning readers until no data arrives within TimeoutMs.
+%% Stops when the input is closed or no data arrives within TimeoutMs.
 %% Kills the reader process on timeout so it doesn't linger.
 drain_input(TimeoutMs) ->
     Self = self(),
@@ -84,6 +109,8 @@ drain_input(TimeoutMs) ->
         Self ! {Ref, Chunk}
     end),
     receive
+        {Ref, eof} -> ok;
+        {Ref, {error, _}} -> ok;
         {Ref, _} -> drain_input(TimeoutMs)
     after TimeoutMs ->
         exit(Pid, kill),
@@ -443,9 +470,10 @@ window_size() ->
 read_with_timeout(TimeoutMs) ->
     ensure_reader(self()),
     receive
-        {etui_input, Bin} -> {ok, Bin}
+        {etui_input, Bin} -> {ok, Bin};
+        {etui_input_closed} -> {error, input_closed}
     after TimeoutMs ->
-        {error, nil}
+        {error, read_timeout}
     end.
 
 ensure_reader(Owner) ->
@@ -456,10 +484,16 @@ ensure_reader(Owner) ->
         _ -> ok
     end.
 
+%% eof and {error, _} are answers that never change: asking again gets the same
+%% one at once, forever. Report it a single time and let the process end.
 reader_loop(Owner) ->
-    Raw = io:get_chars("", 128),
-    Owner ! {etui_input, to_binary(Raw)},
-    reader_loop(Owner).
+    case io:get_chars("", 128) of
+        eof -> Owner ! {etui_input_closed};
+        {error, _} -> Owner ! {etui_input_closed};
+        Raw ->
+            Owner ! {etui_input, to_binary(Raw)},
+            reader_loop(Owner)
+    end.
 
 stop_reader() ->
     case erlang:whereis(etui_kbd_reader) of

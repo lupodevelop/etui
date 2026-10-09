@@ -18,7 +18,7 @@
 ///     fn(_state, screen) { buffer.buffer_new(screen) },
 ///     fn(ev, state) { case ev { backend.KeyPress("q") -> state _ -> state } },
 ///     fn(_) { False },
-///     16,
+///     fn(_) { 16 },
 ///   )
 /// }
 /// ```

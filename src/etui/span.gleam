@@ -422,44 +422,38 @@ fn pack(
                 [Piece(style: st, ..), ..] -> st
                 [] -> span_plain("")
               }
-              let flat = word_text(w)
-              let #(head, tail) =
-                split_at_width(flat, width - current_width - gap)
-              case head {
-                "" -> {
-                  let #(h2, t2) = split_at_width(flat, width)
-                  pack(
-                    [
-                      Word(sep: w.sep, pieces: [
-                        Piece(content: t2, style: proto),
-                      ]),
-                      ..rest
-                    ],
-                    width,
-                    alignment,
-                    text.cell_width(h2),
-                    push([], h2, proto),
-                    flush(current, alignment, done),
-                  )
-                }
+              let rows =
+                break_word(word_text(w), width - current_width - gap, width)
+              // The first piece fills what is left of the current row; it is
+              // empty when not even one grapheme fits there.
+              let #(fill, more) = case rows {
+                [first, ..others] -> #(first, others)
+                [] -> #("", [])
+              }
+              let closed = case fill {
+                "" -> flush(current, alignment, done)
                 _ ->
+                  flush(
+                    push(push_gap(current, w.sep, gap), fill, proto),
+                    alignment,
+                    done,
+                  )
+              }
+              // Every piece but the last is a full row of its own. The last
+              // stays open so the words after it can share its row.
+              case list.reverse(more) {
+                [last, ..before] ->
                   pack(
-                    [
-                      Word(sep: w.sep, pieces: [
-                        Piece(content: tail, style: proto),
-                      ]),
-                      ..rest
-                    ],
+                    rest,
                     width,
                     alignment,
-                    0,
-                    [],
-                    flush(
-                      push(push_gap(current, w.sep, gap), head, proto),
-                      alignment,
-                      done,
-                    ),
+                    text.cell_width(last),
+                    push([], last, proto),
+                    list.fold(list.reverse(before), closed, fn(acc, row) {
+                      flush(push([], row, proto), alignment, acc)
+                    }),
                   )
+                [] -> pack(rest, width, alignment, 0, [], closed)
               }
             }
           }
@@ -488,7 +482,11 @@ fn flush(
   alignment: text.Alignment,
   done: List(Line),
 ) -> List(Line) {
-  [Line(spans: list.reverse(current), alignment: alignment), ..done]
+  case current {
+    // A row with nothing in it would draw as a blank line the text never had.
+    [] -> done
+    _ -> [Line(spans: list.reverse(current), alignment: alignment), ..done]
+  }
 }
 
 // Append to the span being built when the style matches, so a wrapped line
@@ -508,27 +506,34 @@ fn same_style(a: Span, b: Span) -> Bool {
   a.style == b.style && a.link == b.link
 }
 
-// Take as many graphemes as fit in `budget` cells.
-fn split_at_width(content: String, budget: Int) -> #(String, String) {
-  case budget <= 0 {
-    True -> #("", content)
-    False -> take_cells(string.to_graphemes(content), budget, 0, "")
-  }
+// Cut a word wider than a row into rows, walking its graphemes once.
+//
+// The first row has `room` cells, because part of the current row is already
+// taken, and may come back empty. Every later row has `width` cells. A row
+// that is still empty always takes the grapheme in front of it, even one wider
+// than the row, so every step either adds a grapheme or closes a row and the
+// walk always ends. A zero-width grapheme fits wherever it lands and so stays
+// with the grapheme before it.
+fn break_word(content: String, room: Int, width: Int) -> List(String) {
+  cut(string.to_graphemes(content), width, room, False, "", 0, [])
 }
 
-fn take_cells(
+fn cut(
   graphemes: List(String),
-  budget: Int,
+  width: Int,
+  limit: Int,
+  later: Bool,
+  row: String,
   used: Int,
-  head: String,
-) -> #(String, String) {
+  closed: List(String),
+) -> List(String) {
   case graphemes {
-    [] -> #(head, "")
+    [] -> list.reverse([row, ..closed])
     [g, ..rest] -> {
       let w = text.grapheme_cell_width(g)
-      case used + w > budget {
-        True -> #(head, string.concat([g, ..rest]))
-        False -> take_cells(rest, budget, used + w, head <> g)
+      case used + w <= limit || { later && row == "" } {
+        True -> cut(rest, width, limit, later, row <> g, used + w, closed)
+        False -> cut(graphemes, width, width, True, "", 0, [row, ..closed])
       }
     }
   }

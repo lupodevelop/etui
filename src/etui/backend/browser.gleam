@@ -28,7 +28,7 @@ import etui/backend.{
   EnableMouse, EnterAltScreen, Resize, Tick,
 }
 @target(javascript)
-import etui/input
+import etui/backend/pending_input
 
 @target(javascript)
 import gleam/javascript/promise
@@ -39,16 +39,38 @@ import gleam/list
 // ─────────────────────────────────────────────────────────────────
 // Types
 
+@target(erlang)
+/// Placeholder so the module is not empty on the Erlang target, where it
+/// cannot be used. Hex refuses modules without public definitions.
+pub opaque type BrowserState {
+  BrowserState
+}
+
+@target(erlang)
+@internal
+pub fn blank_state() -> BrowserState {
+  BrowserState
+}
+
 @target(javascript)
-pub type BrowserState {
+pub opaque type BrowserState {
   BrowserState(
     cols: Int,
     rows: Int,
     /// Bytes read but not yet forming a complete escape sequence.
     pending: String,
+    /// Clock reading when `pending` was last added to, see `pending_input`.
+    pending_since: Int,
     /// Events decoded but not yet handed to the app.
     queue: List(InputEvent),
   )
+}
+
+@target(javascript)
+/// A state with nothing read yet, for tests of the backend's own functions.
+@internal
+pub fn blank_state() -> BrowserState {
+  BrowserState(cols: 80, rows: 24, pending: "", pending_since: 0, queue: [])
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -71,6 +93,12 @@ pub fn new() -> backend.AsyncBackend(BrowserState) {
 @target(javascript)
 @external(javascript, "./browser_ffi.mjs", "enterRaw")
 fn enter_raw_ffi() -> Nil {
+  panic as "etui/backend/browser requires the JavaScript target"
+}
+
+@target(javascript)
+@external(javascript, "./browser_ffi.mjs", "monotonicMs")
+fn monotonic_ms_ffi() -> Int {
   panic as "etui/backend/browser requires the JavaScript target"
 }
 
@@ -130,7 +158,14 @@ fn init_terminal() -> Result(BrowserState, Error) {
     Ok(#(c, r)) -> #(c, r)
     Error(_) -> #(80, 24)
   }
-  let state = BrowserState(cols: cols, rows: rows, pending: "", queue: [])
+  let state =
+    BrowserState(
+      cols: cols,
+      rows: rows,
+      pending: "",
+      pending_since: 0,
+      queue: [],
+    )
   register_cleanup_ffi(
     fn() {
       let _ = cleanup_terminal(state)
@@ -166,30 +201,41 @@ fn poll_input(
   case state.queue {
     [event, ..rest] ->
       promise.resolve(Ok(#(event, BrowserState(..state, queue: rest))))
-    [] ->
-      promise.map(read_chunk_ffi(timeout_ms), fn(chunk) {
-        let #(events, pending) = case chunk {
-          // Nothing arrived before the timeout, so a half-finished sequence is
-          // a real Escape press rather than the start of something.
-          "" -> #(input.flush(state.pending), "")
-          _ -> {
-            let input.Parsed(decoded, rest) =
-              input.parse(state.pending <> chunk)
-            #(decoded, rest)
-          }
-        }
+    [] -> {
+      let wait =
+        pending_input.read_wait(
+          state.pending,
+          state.pending_since,
+          monotonic_ms_ffi(),
+          timeout_ms,
+        )
+      promise.map(read_chunk_ffi(wait), fn(chunk) {
+        let #(events, pending, since) =
+          pending_input.decode(
+            state.pending,
+            state.pending_since,
+            chunk,
+            monotonic_ms_ffi(),
+          )
         let #(sized, resize) = case take_resize_ffi() {
           [cols, rows] -> #(BrowserState(..state, cols: cols, rows: rows), [
             Resize(cols, rows),
           ])
           _ -> #(state, [])
         }
-        let next = BrowserState(..sized, pending: pending, queue: [])
+        let next =
+          BrowserState(
+            ..sized,
+            pending: pending,
+            pending_since: since,
+            queue: [],
+          )
         case list.append(resize, events) {
           [] -> Ok(#(Tick, next))
           [event, ..rest] -> Ok(#(event, BrowserState(..next, queue: rest)))
         }
       })
+    }
   }
 }
 
@@ -203,7 +249,13 @@ fn get_terminal_size(
   }
   Ok(#(
     backend.TerminalSize(width: cols, height: rows),
-    BrowserState(cols: cols, rows: rows, pending: "", queue: []),
+    BrowserState(
+      cols: cols,
+      rows: rows,
+      pending: "",
+      pending_since: 0,
+      queue: [],
+    ),
   ))
 }
 

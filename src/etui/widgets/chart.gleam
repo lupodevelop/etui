@@ -45,6 +45,7 @@ pub type Chart {
 // ─────────────────────────────────────────────────────────────────
 // Constructors
 
+/// A chart with rainbow fill, 2-cell bars, and auto scale.
 pub fn chart_new(data: List(Int)) -> Chart {
   Chart(
     data: data,
@@ -58,30 +59,37 @@ pub fn chart_new(data: List(Int)) -> Chart {
   )
 }
 
+/// Choose how the bars get their color.
 pub fn with_fill(c: Chart, fill: ChartFill) -> Chart {
   Chart(..c, fill: fill)
 }
 
+/// Pin the scale so charts are comparable across frames. Clamped to ≥ 1.
 pub fn with_max(c: Chart, max: Int) -> Chart {
   Chart(..c, max_val: int.max(1, max))
 }
 
+/// Cells per bar. Clamped to ≥ 1.
 pub fn with_bar_width(c: Chart, w: Int) -> Chart {
   Chart(..c, bar_width: int.max(1, w))
 }
 
+/// Blank cells between bars. Clamped to ≥ 0.
 pub fn with_gap(c: Chart, g: Int) -> Chart {
   Chart(..c, gap: int.max(0, g))
 }
 
+/// Frames an animated rainbow needs to cycle. Clamped to ≥ 1.
 pub fn with_period(c: Chart, period: Int) -> Chart {
   Chart(..c, period: int.max(1, period))
 }
 
+/// Color of cells no bar touched.
 pub fn with_bg(c: Chart, bg: style.Color) -> Chart {
   Chart(..c, bg: bg)
 }
 
+/// Take only the background from a Style.
 pub fn with_style(c: Chart, s: style.Style) -> Chart {
   Chart(..c, bg: s.bg)
 }

@@ -2,7 +2,7 @@
 // Call setup(term) with an xterm.js Terminal instance BEFORE calling main().
 // Key normalisation is identical to node_ffi.mjs so keys.match works the same.
 
-import { toList } from "../../gleam.mjs";
+import { Ok, toList } from "../../gleam.mjs";
 
 // ─── State ───────────────────────────────────────────────────────
 
@@ -27,13 +27,7 @@ export function setup(xtermTerminal) {
 
 export function enterRaw() {}   // xterm.js is always in "raw" mode
 
-export function exitRaw() {
-  if (escapeTimer !== null) {
-    clearTimeout(escapeTimer);
-    escapeTimer = null;
-    escapeBuffer = null;
-  }
-}
+export function exitRaw() {}
 
 export function writeStdout(s) {
   term?.write(s);
@@ -178,4 +172,8 @@ function parseSgrMouse(payload) {
   if (cb === 65) return new MouseScroll(x, y, false);
   const btn = [new MouseLeft(), new MouseMiddle(), new MouseRight()][cb % 4] ?? new MouseLeft();
   return isPress ? new MousePress(x, y, btn) : new MouseRelease(x, y, btn);
+}
+
+export function monotonicMs() {
+  return Math.floor(performance.now());
 }

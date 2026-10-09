@@ -11,7 +11,7 @@
 ///
 /// ```gleam
 /// let sv = scroll_view_new(200, 50)
-/// let sv_state = sv_state_new()
+/// let sv_state = state_new()
 ///
 /// // Render a paragraph into the virtual canvas:
 /// scroll_view.render(buf, area, sv, sv_state, fn(inner_buf, inner_area) {
@@ -36,6 +36,7 @@ pub type ScrollViewState {
 // ─────────────────────────────────────────────────────────────────
 // Constructors
 
+/// A virtual canvas of the given size. Dimensions are clamped to ≥ 1.
 pub fn scroll_view_new(virtual_width: Int, virtual_height: Int) -> ScrollView {
   ScrollView(
     virtual_width: int.max(1, virtual_width),
@@ -43,26 +44,38 @@ pub fn scroll_view_new(virtual_width: Int, virtual_height: Int) -> ScrollView {
   )
 }
 
-pub fn sv_state_new() -> ScrollViewState {
+/// New scroll state at the origin. Every other stateful widget names its
+/// constructor `state_new`, so this one does too.
+pub fn state_new() -> ScrollViewState {
   ScrollViewState(scroll_x: 0, scroll_y: 0)
 }
 
+/// Former name of `state_new`.
+pub fn sv_state_new() -> ScrollViewState {
+  state_new()
+}
+
+/// Scroll to absolute coordinates; negatives clamp to 0.
 pub fn scroll_to(_state: ScrollViewState, x: Int, y: Int) -> ScrollViewState {
   ScrollViewState(scroll_x: int.max(0, x), scroll_y: int.max(0, y))
 }
 
+/// Scroll down by `lines`.
 pub fn scroll_down(state: ScrollViewState, lines: Int) -> ScrollViewState {
   ScrollViewState(..state, scroll_y: state.scroll_y + int.max(0, lines))
 }
 
+/// Scroll up by `lines`, stopping at the top.
 pub fn scroll_up(state: ScrollViewState, lines: Int) -> ScrollViewState {
   ScrollViewState(..state, scroll_y: int.max(0, state.scroll_y - lines))
 }
 
+/// Scroll right by `cols`.
 pub fn scroll_right(state: ScrollViewState, cols: Int) -> ScrollViewState {
   ScrollViewState(..state, scroll_x: state.scroll_x + int.max(0, cols))
 }
 
+/// Scroll left by `cols`, stopping at the left edge.
 pub fn scroll_left(state: ScrollViewState, cols: Int) -> ScrollViewState {
   ScrollViewState(..state, scroll_x: int.max(0, state.scroll_x - cols))
 }
@@ -132,6 +145,7 @@ pub fn scroll_pct_y(
   int.min(100, state.scroll_y * 100 / max_scroll)
 }
 
+/// Horizontal twin of `scroll_pct_y`.
 pub fn scroll_pct_x(
   state: ScrollViewState,
   sv: ScrollView,

@@ -11,6 +11,7 @@ import gleam/string
 // ─────────────────────────────────────────────────────────────────
 // Types
 
+/// Where the title sits along the rule.
 pub type FieldsetAlign {
   AlignLeft
   AlignCenter
@@ -33,6 +34,7 @@ pub type Fieldset {
 // ─────────────────────────────────────────────────────────────────
 // Constructors
 
+/// A left-aligned fieldset with the given title and thin rules.
 pub fn fieldset_new(title: String) -> Fieldset {
   Fieldset(
     title: title,
@@ -45,22 +47,27 @@ pub fn fieldset_new(title: String) -> Fieldset {
   )
 }
 
+/// Move the title along the rule. Centered titles ignore `pad`.
 pub fn with_align(fs: Fieldset, a: FieldsetAlign) -> Fieldset {
   Fieldset(..fs, align: a)
 }
 
+/// Replace the rule character (e.g. `"═"` for a double rule).
 pub fn with_line_char(fs: Fieldset, c: String) -> Fieldset {
   Fieldset(..fs, line_char: c)
 }
 
+/// Rule chars between the screen edge and the title. Clamped to ≥ 0.
 pub fn with_pad(fs: Fieldset, p: Int) -> Fieldset {
   Fieldset(..fs, pad: int.max(0, p))
 }
 
+/// Colors of the rule; the background also applies to the title.
 pub fn with_colors(fs: Fieldset, fg: style.Color, bg: style.Color) -> Fieldset {
   Fieldset(..fs, fg: fg, bg: bg)
 }
 
+/// Color of the title text (rendered bold).
 pub fn with_title_color(fs: Fieldset, fg: style.Color) -> Fieldset {
   Fieldset(..fs, title_fg: fg)
 }
@@ -68,6 +75,8 @@ pub fn with_title_color(fs: Fieldset, fg: style.Color) -> Fieldset {
 // ─────────────────────────────────────────────────────────────────
 // Rendering
 
+/// Draw the rule into the first row of `area`. An empty title renders a plain
+/// rule across the full width.
 pub fn render(
   buf: buffer.Buffer,
   area: geometry.Rect,

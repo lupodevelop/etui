@@ -3,6 +3,12 @@
 // combining marks (NFD), fullwidth, mixed content.
 // Exit criterion: cell_width matches what a modern terminal displays.
 
+@target(erlang)
+import etui/buffer
+@target(erlang)
+import etui/geometry
+@target(erlang)
+import etui/style
 import etui/text
 import gleam/list
 import gleam/string
@@ -298,4 +304,81 @@ pub fn graphemes_vs_cells_zwj_test() {
   let gs = string.to_graphemes(fam)
   list.length(gs) |> should.equal(1)
   text.cell_width(fam) |> should.equal(2)
+}
+
+// ─── drop_graphemes ────────────────────────────────────────────────
+// Regression: string.drop_start on the JavaScript target slices by a
+// UTF-8 byte count of the prefix, which desynchronises from UTF-16 code
+// units on any multi-byte content. These pin the safe replacement.
+
+pub fn drop_graphemes_multibyte_test() {
+  // 5 box-drawing chars dropped, 5 remain. drop_start returned "" here.
+  text.drop_graphemes("──────────", 5)
+  |> should.equal("─────")
+}
+
+pub fn drop_graphemes_cjk_keeps_the_rest_test() {
+  // Dropping 2 CJK graphemes must leave all 6, not a byte-sliced fragment.
+  text.drop_graphemes("你好世界你好世界", 2)
+  |> should.equal("世界你好世界")
+}
+
+pub fn drop_graphemes_zero_and_overflow_test() {
+  text.drop_graphemes("café", 0) |> should.equal("café")
+  text.drop_graphemes("café", 99) |> should.equal("")
+}
+
+// ─── One width table ───────────────────────────────────────────────
+//
+// On Erlang the buffer fills cells in a native module. It once kept its own
+// copy of the width table, and the copy widened U+1F650..U+1F67F, which
+// `text` leaves at one cell.
+
+@target(erlang)
+fn fill_width(cp: Int) -> Int {
+  let assert Ok(c) = string.utf_codepoint(cp)
+  let s = string.from_utf_codepoints([c])
+  let buf =
+    buffer.buffer_new_filled(
+      geometry.rect_new(0, 0, 4, 1),
+      s,
+      style.default_style(),
+    )
+  case buffer.is_continuation(buffer.get_cell(buf, geometry.Position(1, 0))) {
+    True -> 2
+    False -> 1
+  }
+}
+
+@target(erlang)
+fn check_fill(cp: Int, last: Int) -> Nil {
+  case cp > last {
+    True -> Nil
+    False -> {
+      case text.codepoint_cell_width(cp) {
+        0 -> Nil
+        w -> fill_width(cp) |> should.equal(w)
+      }
+      check_fill(cp + 1, last)
+    }
+  }
+}
+
+@target(erlang)
+pub fn buffer_fill_agrees_with_text_width_test() {
+  check_fill(0x1F000, 0x1FAFF)
+  check_fill(0x2E80, 0x3100)
+  check_fill(0xA000, 0xA4CF)
+}
+
+// ─── Wide symbols below U+1F300 ────────────────────────────────────
+
+pub fn wide_symbols_are_two_cells_test() {
+  ["⌚", "☕", "⚡", "✅", "❌", "⭐", "⭕", "〈", "🀄", "🆗"]
+  |> list.each(fn(s) { text.cell_width(s) |> should.equal(2) })
+}
+
+pub fn ambiguous_symbols_stay_one_cell_test() {
+  ["✦", "★", "◆", "☆", "☺", "❤", "✔", "♥"]
+  |> list.each(fn(s) { text.cell_width(s) |> should.equal(1) })
 }

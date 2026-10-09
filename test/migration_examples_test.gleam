@@ -1,3 +1,4 @@
+@target(erlang)
 /// The code and the numbers in docs/migrating-to-2.0.md.
 ///
 /// A migration guide is read by people who cannot yet tell a mistake in it
@@ -8,6 +9,7 @@
 /// The "1.0.1" column of those tables cannot be checked from this repository:
 /// it is what the old code did. It was measured by running the same probe
 /// against a worktree at the v1.0.1 tag, which the guide says how to redo.
+import etui/app
 import etui/backend
 import etui/buffer
 import etui/geometry.{
@@ -128,6 +130,31 @@ pub fn split_with_replaces_split_flex_test() {
   |> should.equal(3)
 }
 
+@target(erlang)
+pub fn the_poll_timeout_is_a_function_test() {
+  let quiet =
+    backend.Backend(
+      init: fn() { Ok(Nil) },
+      render: fn(s, _ops) { Ok(s) },
+      poll: fn(s, _timeout) { Ok(#(backend.Tick, s)) },
+      next_size: fn(s) { Ok(#(backend.TerminalSize(80, 24), s)) },
+      cleanup: fn(_s) { Nil },
+    )
+  let result =
+    app.run_buffered(
+      quiet,
+      0,
+      fn(_, screen) { buffer.buffer_new(screen) },
+      fn(_, m) { m },
+      fn(_) { True },
+      fn(_) { 16 },
+    )
+  case result {
+    app.Success(_) -> Nil
+    _ -> panic as "loop did not succeed"
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────
 // "What still compiles and now behaves differently"
 //
@@ -232,4 +259,9 @@ pub fn the_new_pieces_the_guide_names_exist_test() {
   backend.restore_sequence()
   |> fn(s) { s != "" }
   |> should.equal(True)
+}
+
+pub fn a_wide_symbol_is_two_cells_test() {
+  text.cell_width("⚡") |> should.equal(2)
+  text.cell_width("✦") |> should.equal(1)
 }

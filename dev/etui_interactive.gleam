@@ -86,7 +86,7 @@ pub fn main() -> Nil {
       fn(s, screen) { #(render(s, screen), Error(Nil)) },
       on_event,
       fn(s) { s.quit },
-      100,
+      fn(_) { 100 },
     )
   Nil
 }

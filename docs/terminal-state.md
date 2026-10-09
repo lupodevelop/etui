@@ -13,6 +13,7 @@ every target and by the two places that cannot call Gleam at all:
 | Sequence | Undoes |
 |---|---|
 | `?1000l ?1002l ?1003l ?1005l ?1006l ?1007l ?1015l` | mouse reporting, in every encoding a terminal might have accepted |
+| `?2026l` | a frame held by synchronized output, if the app died mid-frame |
 | `?2004l` | bracketed paste |
 | `?1049l` | the alternate screen |
 | `?7h` | auto-wrap, which etui turns off to reclaim the last column |
@@ -21,6 +22,15 @@ every target and by the two places that cannot call Gleam at all:
 
 It is unconditional. Asking a terminal to leave a mode it was never in costs
 nothing, and cleanup runs when the state is least trustworthy.
+
+## Ctrl+S and Ctrl+Q
+
+On POSIX the Erlang backend clears `IXON` when it enters raw mode, because
+OTP can leave it on (macOS does) and the terminal would then keep Ctrl+S and
+Ctrl+Q for itself, pausing output instead of delivering the keys. The setting
+the terminal had is read first and put back after `stty sane`, so a shell that
+runs with flow control off stays that way. The shell watchdog only runs
+`stty sane`, so after a hard kill flow control is whatever `sane` makes it.
 
 ## The ways an app ends
 
@@ -38,14 +48,14 @@ process belongs to — a pipe, some CI runners, a daemon — no watchdog is
 installed, because an orphan is detached from the session and `/dev/tty`
 means nothing to it.
 
-**A signal from outside.** In raw mode Ctrl+C is not a signal at all: ISIG is
-off, so it arrives as byte 3 and etui delivers it as the key `"ctrl+c"` for
-the app to handle. A signal sent from elsewhere (`kill -INT`) is a different
-matter: the BEAM reserves SIGINT for its own break handler and refuses
-`os:set_signal(sigint, handle)` unless the VM was started with `+B`, so the
-app is left at the break prompt with the terminal still borrowed. Measured on
-OTP 29; the fallback path in the code predates that and was written for the
-same refusal on OTP 28.
+**A signal.** On the JavaScript targets raw mode turns ISIG off, so Ctrl+C
+arrives as byte 3 and etui delivers it as the key `"ctrl+c"`. On the Erlang
+target ISIG stays on (measured on OTP 29): Ctrl+C is a SIGINT, and the BEAM
+reserves SIGINT for its own break prompt. It refuses
+`os:set_signal(sigint, handle)` unless the VM was started with `+B`, so the app
+is left at the break prompt with the terminal still borrowed. An Erlang app
+should therefore offer its own quit key and not depend on receiving `"ctrl+c"`.
+Ctrl+Q and Ctrl+S do reach it, see the section above.
 
 Start the VM with `+B` if an app should die on SIGINT:
 

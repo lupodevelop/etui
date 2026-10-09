@@ -202,6 +202,10 @@ pub fn main() -> Nil {
   bench("styled wrap 1200 chars to 80", 1000, fn() {
     span.wrap(span.text_plain(paragraph), 80)
   })
+  let long_word = string.repeat("a", 50_000)
+  bench("styled wrap one 50000-char word to 80", 20, fn() {
+    span.wrap(span.text_plain(long_word), 80)
+  })
 
   heading("a whole frame, which is the number that matters")
   let frame_area = geometry.rect_new(0, 0, 120, 40)

@@ -2666,19 +2666,25 @@ pub fn tree_expanded_children_visible_in_nav_test() {
 // scroll_view
 
 pub fn scroll_view_state_new_test() {
-  let s = scroll_view.sv_state_new()
+  let s = scroll_view.state_new()
   s.scroll_x |> should.equal(0)
   s.scroll_y |> should.equal(0)
 }
 
+pub fn scroll_view_sv_state_new_is_still_available_test() {
+  // The old name survives as an alias so 2.0 code keeps compiling.
+  scroll_view.sv_state_new()
+  |> should.equal(scroll_view.state_new())
+}
+
 pub fn scroll_view_scroll_down_test() {
-  let s = scroll_view.sv_state_new() |> scroll_view.scroll_down(5)
+  let s = scroll_view.state_new() |> scroll_view.scroll_down(5)
   s.scroll_y |> should.equal(5)
 }
 
 pub fn scroll_view_scroll_up_clamps_test() {
   let s =
-    scroll_view.sv_state_new()
+    scroll_view.state_new()
     |> scroll_view.scroll_down(3)
     |> scroll_view.scroll_up(10)
   s.scroll_y |> should.equal(0)
@@ -2686,7 +2692,7 @@ pub fn scroll_view_scroll_up_clamps_test() {
 
 pub fn scroll_view_scroll_right_left_test() {
   let s =
-    scroll_view.sv_state_new()
+    scroll_view.state_new()
     |> scroll_view.scroll_right(4)
     |> scroll_view.scroll_left(2)
   s.scroll_x |> should.equal(2)
@@ -2694,27 +2700,27 @@ pub fn scroll_view_scroll_right_left_test() {
 
 pub fn scroll_view_clamp_test() {
   let sv = scroll_view.scroll_view_new(20, 20)
-  let s = scroll_view.scroll_to(scroll_view.sv_state_new(), 100, 100)
+  let s = scroll_view.scroll_to(scroll_view.state_new(), 100, 100)
   let clamped = scroll_view.clamp(s, sv, 10, 10)
   clamped.scroll_x |> should.equal(10)
   clamped.scroll_y |> should.equal(10)
 }
 
 pub fn scroll_view_scroll_to_test() {
-  let s = scroll_view.scroll_to(scroll_view.sv_state_new(), 7, 3)
+  let s = scroll_view.scroll_to(scroll_view.state_new(), 7, 3)
   s.scroll_x |> should.equal(7)
   s.scroll_y |> should.equal(3)
 }
 
 pub fn scroll_view_pct_y_test() {
   let sv = scroll_view.scroll_view_new(100, 100)
-  let s = scroll_view.scroll_to(scroll_view.sv_state_new(), 0, 50)
+  let s = scroll_view.scroll_to(scroll_view.state_new(), 0, 50)
   scroll_view.scroll_pct_y(s, sv, 10) |> should.equal(55)
 }
 
 pub fn scroll_view_pct_x_test() {
   let sv = scroll_view.scroll_view_new(100, 100)
-  let s = scroll_view.scroll_to(scroll_view.sv_state_new(), 0, 0)
+  let s = scroll_view.scroll_to(scroll_view.state_new(), 0, 0)
   scroll_view.scroll_pct_x(s, sv, 100) |> should.equal(0)
 }
 
@@ -2722,7 +2728,7 @@ pub fn scroll_view_render_blits_content_test() {
   let area = rect_new(0, 0, 5, 3)
   let buf = buffer.buffer_new(area)
   let sv = scroll_view.scroll_view_new(10, 5)
-  let state = scroll_view.sv_state_new()
+  let state = scroll_view.state_new()
   let result =
     scroll_view.render(buf, area, sv, state, fn(inner_buf, _inner_area) {
       buffer.set_string(

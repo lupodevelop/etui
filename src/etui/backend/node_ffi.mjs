@@ -6,7 +6,7 @@
 // the JavaScript target came to be missing modified keys, bracketed paste and
 // mouse drags long after the Erlang one had them.
 
-import { toList } from "../../gleam.mjs";
+import { Ok, toList } from "../../gleam.mjs";
 
 // ─── State ───────────────────────────────────────────────────────
 
@@ -33,11 +33,6 @@ export function exitRaw() {
     process.stdin.setRawMode(false);
     process.stdin.pause();
     rawModeActive = false;
-  }
-  if (escapeTimer !== null) {
-    clearTimeout(escapeTimer);
-    escapeTimer = null;
-    escapeBuffer = null;
   }
 }
 
@@ -76,6 +71,10 @@ function drainResolvers() {
     const resolve = inputResolvers.shift();
     resolve(null);
   }
+}
+
+export function monotonicMs() {
+  return Math.floor(performance.now());
 }
 
 // ─── Reading ──────────────────────────────────────────────────────

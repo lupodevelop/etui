@@ -1,7 +1,9 @@
 /// GATUI SHOWCASE, interactive widget explorer.
 /// Run: gleam run -m etui_showcase
 /// TAB=switch  j/k=navigate  ↵=select/submit  TAB/S-TAB=form fields
-/// d=dialog  n=info  e=error  r=reset form  q=quit
+/// d=dialog  n=info  e=error  q=quit (not in the form, where it is a letter)
+/// Ctrl+R=reset form  Ctrl+Q=quit from anywhere  F1-F5=jump to a tab
+/// Pasting text on the form tab types it into the focused field.
 import etui/anim
 import etui/app
 import etui/backend
@@ -1076,8 +1078,24 @@ pub fn update(event: backend.InputEvent, m: Model) -> Model {
   case event {
     backend.Resize(w, h) -> Model(..m, width: w, height: h)
     backend.KeyPress(raw) -> handle_key(keys.match(raw), m)
+    // Pasted text arrives as one event. Only the form has somewhere to put it.
+    backend.Paste(text) ->
+      case m.tab, m.dlg_open {
+        TabForm, False -> Model(..m, form: type_text(m.form, text))
+        _, _ -> m
+      }
     _ -> m
   }
+}
+
+// A paste is one field's worth of text: a line break would only make sense as
+// a new field, so the text is cut at the first one.
+fn type_text(f: form.Form(FormField), text: String) -> form.Form(FormField) {
+  let line = case string.split(text, "\n") {
+    [first, ..] -> string.trim_end(first)
+    [] -> ""
+  }
+  list.fold(string.to_graphemes(line), f, form.type_char)
 }
 
 fn handle_key(k: keys.Key, m: Model) -> Model {
@@ -1097,8 +1115,10 @@ fn handle_key(k: keys.Key, m: Model) -> Model {
       }
     False ->
       case k {
-        // Ctrl+C always quits
-        keys.Ctrl("c") -> Model(..m, quit: True)
+        // Ctrl+Q quits from anywhere, the form tab included. Ctrl+C does too
+        // where the terminal passes it on; on the Erlang target the VM keeps
+        // it for its own break prompt.
+        keys.Ctrl("q") | keys.Ctrl("c") -> Model(..m, quit: True)
         // Tab: advance form field when on form tab; otherwise switch tab
         keys.Tab ->
           case m.tab {
@@ -1154,8 +1174,7 @@ fn handle_form(k: keys.Key, m: Model) -> Model {
         False -> m2
       }
     }
-    // r resets form, can't type 'r' in fields, acceptable for a demo
-    keys.Char("r") -> Model(..m, form: make_form())
+    keys.Ctrl("r") -> Model(..m, form: make_form())
     keys.Char(c) -> Model(..m, form: form.type_char(m.form, c))
     _ -> m
   }
@@ -1266,12 +1285,12 @@ fn handle_view(k: keys.Key, m: Model) -> Model {
 pub fn main() -> Nil {
   let _ =
     app.run_animated(
-      default.new(),
+      default.new_with_options(backend.Options(mouse: False, paste: True)),
       initial_model(),
       render,
       update,
       fn(m) { m.quit },
-      80,
+      fn(_) { 80 },
     )
   Nil
 }

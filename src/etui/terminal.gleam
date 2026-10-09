@@ -174,6 +174,9 @@ pub fn hide_cursor(frame: Frame) -> Frame {
 /// terminal is showing is unknown, so there is nothing to diff against. Every
 /// frame after that emits only the cells that changed.
 ///
+/// A frame that emits anything is wrapped in synchronized output, so the
+/// terminal shows the old frame until the whole new one has arrived.
+///
 /// Public because it is worth being able to check what a frame will emit
 /// without a terminal to emit it into, which is how the diffing and cursor
 /// rules are tested. `draw` is what an app calls.
@@ -194,7 +197,7 @@ pub fn frame_ops(
     CursorShown(pos) ->
       cursor.hide() <> cursor.move_to(pos.y + 1, pos.x + 1) <> cursor.show()
   }
-  case ansi, cursor_ansi {
+  let ops = case ansi, cursor_ansi {
     "", "" -> []
     "", only_cursor -> [backend.Write(only_cursor)]
     _, _ ->
@@ -206,6 +209,17 @@ pub fn frame_ops(
         ]
         False -> [backend.Write(ansi <> cursor_ansi)]
       }
+  }
+  // Nothing to say, nothing sent: an idle poll must not cost two escape
+  // sequences. A first frame's clear is part of the frame and goes inside.
+  case ops {
+    [] -> []
+    _ ->
+      list.flatten([
+        [backend.BeginSynchronizedOutput],
+        ops,
+        [backend.EndSynchronizedOutput],
+      ])
   }
 }
 

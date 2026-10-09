@@ -10,7 +10,9 @@ import gleam/int
 // ─────────────────────────────────────────────────────────────────
 // Types
 
+/// A bar that reports a percentage, or one that only shows activity.
 pub type ProgressMode {
+  /// Clamped to 0–100.
   Determinate(percent: Int)
   Indeterminate
 }
@@ -33,6 +35,7 @@ pub type ProgressBar {
 // ─────────────────────────────────────────────────────────────────
 // Constructors
 
+/// A determinate bar at `percent` (clamped to 0–100).
 pub fn progress_new(percent: Int) -> ProgressBar {
   ProgressBar(
     mode: Determinate(int.clamp(percent, 0, 100)),
@@ -47,6 +50,7 @@ pub fn progress_new(percent: Int) -> ProgressBar {
   )
 }
 
+/// A bar whose segment bounces back and forth; percent unknown.
 pub fn progress_indeterminate() -> ProgressBar {
   ProgressBar(
     mode: Indeterminate,
@@ -61,10 +65,12 @@ pub fn progress_indeterminate() -> ProgressBar {
   )
 }
 
+/// Text overlaid in the center of the bar.
 pub fn with_label(p: ProgressBar, label: String) -> ProgressBar {
   ProgressBar(..p, label: label)
 }
 
+/// Replace the block characters used for filled and empty cells.
 pub fn with_chars(
   p: ProgressBar,
   filled: String,
@@ -78,6 +84,7 @@ pub fn with_segment_width(p: ProgressBar, pct: Int) -> ProgressBar {
   ProgressBar(..p, segment_width: int.clamp(pct, 1, 100))
 }
 
+/// Colors of the whole bar.
 pub fn with_colors(
   p: ProgressBar,
   fg: style.Color,
@@ -86,14 +93,17 @@ pub fn with_colors(
   ProgressBar(..p, fg: fg, bg: bg)
 }
 
+/// Take only fg/bg from a Style.
 pub fn with_style(p: ProgressBar, s: style.Style) -> ProgressBar {
   ProgressBar(..p, fg: s.fg, bg: s.bg)
 }
 
+/// Extra modifier for the filled portion (or the moving segment).
 pub fn with_filled_modifier(p: ProgressBar, m: style.Modifier) -> ProgressBar {
   ProgressBar(..p, filled_modifier: m)
 }
 
+/// Extra modifier for the unfilled portion.
 pub fn with_empty_modifier(p: ProgressBar, m: style.Modifier) -> ProgressBar {
   ProgressBar(..p, empty_modifier: m)
 }
@@ -105,6 +115,7 @@ pub fn with_empty_modifier(p: ProgressBar, m: style.Modifier) -> ProgressBar {
 // Determinate bars ignore the frame; Indeterminate bars use it to
 // animate the bouncing segment.
 
+/// Draw the bar into the first row of `area`.
 pub fn render(
   buf: buffer.Buffer,
   area: geometry.Rect,

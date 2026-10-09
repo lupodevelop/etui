@@ -1344,7 +1344,7 @@ pub fn main() -> Nil {
       render,
       update,
       fn(m) { m.quit },
-      80,
+      fn(_) { 80 },
     )
   Nil
 }

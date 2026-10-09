@@ -1,9 +1,10 @@
 # Migrating from 1.x to 2.0
 
 Two kinds of change are in here. The first kind the compiler finds for you:
-three types changed shape, four gained variants, four functions changed
-signature and one was removed. The second kind it cannot — a handful of calls
-that still compile and now answer differently.
+three types changed shape, four gained variants, eight functions changed
+signature, three backend states became opaque and one function was removed.
+The second kind it cannot — a handful of calls that still compile and now
+answer differently.
 
 Every number and every claim below was measured by running both versions
 against the same input. How, and how to redo it, is at the end.
@@ -12,8 +13,9 @@ against the same input. How, and how to redo it, is at the end.
 
 If your app is built on `app.run_*` and the widgets — `block`, `paragraph`,
 `list`, `table`, `input` and the rest — nothing in this document applies to
-you. Not one widget constructor or signature changed, and neither did
-`app.run`, `run_buffered` or `run_animated`.
+you, apart from one argument. Not one widget constructor or signature changed.
+The poll timeout of the `app.run_*` loops is now a function, see
+"The poll timeout is a function" below.
 
 What did change under them is rendering bugs. A scrollbar with nothing to
 report no longer paints over the panel border; status bar sections no longer
@@ -116,11 +118,47 @@ The rename is mechanical, but the *result* is not always identical: where 1.x
 mishandled a non-zero spacing, 2.0 does not. See "Spacing composes with flex"
 below.
 
+### The poll timeout is a function
+
+```gleam
+// 1.x
+app.run_buffered(b, model, render, update, quit, 16)
+
+// 2.0
+app.run_buffered(b, model, render, update, quit, fn(_) { 16 })
+```
+
+`app.run`, `run_buffered`, `run_animated` and `run_buffered_cursor` take the
+timeout as `fn(state) -> Int`, called with the current state right before each
+poll. A constant is `fn(_) { n }`. An app that wants a short timeout while
+something is happening and a long one when it is idle can now say so:
+
+```gleam
+fn(m) {
+  case m.streaming {
+    True -> 33
+    False -> 250
+  }
+}
+```
+
+The long timeout is also the longest an event from outside the terminal waits
+before the loop notices it.
+
+### The backend states are opaque
+
+`erlang.ErlangTerminalState`, `node.NodeState` and `browser.BrowserState` can
+be named in a type but no longer built or taken apart. Passing a backend to
+`app.run_*` or `terminal.new` needs no change. Code that read `cols`, `rows`
+or `pending` from one should call `terminal.area` or the backend's `next_size`
+instead.
+
 ### New variants in `backend.InputEvent` and `backend.RenderOp`
 
 `InputEvent` gained `MouseDrag`, `MouseMove` and `Paste`. `RenderOp` gained
-`EnableBracketedPaste` and `DisableBracketedPaste`. A `case` over either that
-was exhaustive without a `_ ->` arm no longer compiles; adding the arm, or
+`EnableBracketedPaste`, `DisableBracketedPaste`, `BeginSynchronizedOutput` and
+`EndSynchronizedOutput`. A `case` over either that was exhaustive without a
+`_ ->` arm no longer compiles; adding the arm, or
 handling the new events, is the whole fix.
 
 `geometry.Flex` (which `FlexJustify` is now an alias of) gained `FlexEvenly`,
@@ -207,6 +245,24 @@ text.wrap("a\r\nb", 20)
 // 1.0.1: ["a\r", "b"]  — the CR measured 0 cells and shifted the row left
 // 2.0.0: ["a", "b"]
 ```
+
+### Some symbols are two cells
+
+⌚ ☕ ⚡ ✅ ❌ ⭐ and the other East Asian Wide symbols below U+1F300 measured one
+cell in 1.x and measure two now, which is how terminals draw them.
+`text.cell_width("⚡")` is `2`. The rest of those blocks (✦ ★ ◆ ☆) stays at one.
+Code that lays out text around one of these characters now counts two cells
+for it.
+
+### Keys, Escape and closed input
+
+- Ctrl+S and Ctrl+Q reach the app on the Erlang target. The terminal used to
+  keep them for flow control on macOS and pause the output.
+- A lone Escape is reported 40 ms after the key press, not after the whole poll
+  timeout. Escape followed by more bytes within that time is read as one
+  sequence, which a zero-wait poll used to split.
+- When stdin is closed, `poll` on the Erlang backend returns an I/O error and
+  the app loop ends. It used to spin on empty reads.
 
 ### Mouse tracking on the JavaScript targets
 

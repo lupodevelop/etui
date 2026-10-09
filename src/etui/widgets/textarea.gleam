@@ -176,7 +176,7 @@ pub fn insert_char(
     True -> state
     False -> {
       let before = text.truncate(line, state.cursor_x, "")
-      let after = string.drop_start(line, string.length(before))
+      let after = text.drop_graphemes(line, string.length(before))
       let new_line = before <> ch <> after
       TextAreaState(
         ..state,
@@ -196,7 +196,7 @@ pub fn backspace(state: TextAreaState) -> TextAreaState {
       let before = text.truncate(line, state.cursor_x - 1, "")
       let graphemes_before =
         string.length(text.truncate(line, state.cursor_x, ""))
-      let after = string.drop_start(line, graphemes_before)
+      let after = text.drop_graphemes(line, graphemes_before)
       TextAreaState(
         ..state,
         lines: set_line(state.lines, state.cursor_y, before <> after),
@@ -232,7 +232,7 @@ pub fn newline(w: TextArea, state: TextAreaState) -> TextAreaState {
     False -> {
       let line = get_line(state.lines, state.cursor_y)
       let before = text.truncate(line, state.cursor_x, "")
-      let after = string.drop_start(line, string.length(before))
+      let after = text.drop_graphemes(line, string.length(before))
       let new_lines =
         set_line(state.lines, state.cursor_y, before)
         |> insert_line_after(state.cursor_y, after)
@@ -491,7 +491,7 @@ fn snap_to_boundary(s: String, cell_pos: Int) -> Int {
 
 fn grapheme_width_at(s: String, cell_pos: Int) -> Int {
   let prefix = text.truncate(s, cell_pos, "")
-  let rest = string.drop_start(s, string.length(prefix))
+  let rest = text.drop_graphemes(s, string.length(prefix))
   case string.to_graphemes(rest) {
     [g, ..] -> text.cell_width(g)
     [] -> 1
@@ -500,7 +500,7 @@ fn grapheme_width_at(s: String, cell_pos: Int) -> Int {
 
 fn grapheme_at_cell(s: String, cell_pos: Int) -> String {
   let prefix = text.truncate(s, cell_pos, "")
-  let rest = string.drop_start(s, string.length(prefix))
+  let rest = text.drop_graphemes(s, string.length(prefix))
   case string.to_graphemes(rest) {
     [g, ..] -> g
     [] -> " "
