@@ -256,6 +256,9 @@ Small, but they will not compile silently:
 
 ### Changed
 
+- **`buffer.diff` answers at once for the same `Buffer` term.** An app that
+  keeps its last frame and returns it unchanged skips the cell walk. Only a hit
+  is trusted: distinct buffers with equal cells still go through the full diff.
 - **`Min` and `Max` resolve differently.** They were sized by one pass that
   gave each `budget / count` and let `Fill` absorb the rest; they now take a
   weight-proportional share bounded by their floor and ceiling, settled

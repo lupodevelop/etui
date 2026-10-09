@@ -649,6 +649,17 @@ fn bv_cell_at(bv: BufView, row_base: Int, x: Int) -> Cell {
 
 /// Compute minimal diff between two buffers as a list of patches.
 pub fn diff(prev: Buffer, next: Buffer) -> List(BufferOp) {
+  // The same term cannot differ from itself. An app that keeps its last frame
+  // and returns it while nothing changed pays one comparison, not a cell walk.
+  // Only a hit is trusted: unequal terms may still hold equal cells, so a miss
+  // takes the full path.
+  case same_term(prev, next) {
+    True -> []
+    False -> diff_cells(prev, next)
+  }
+}
+
+fn diff_cells(prev: Buffer, next: Buffer) -> List(BufferOp) {
   let y_min = min_int(prev.area.position.y, next.area.position.y)
   let y_max = max_int(geometry.bottom(prev.area), geometry.bottom(next.area))
   let x_min = min_int(prev.area.position.x, next.area.position.x)
