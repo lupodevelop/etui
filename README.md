@@ -1,3 +1,13 @@
+> ⚠️ **v2.0 breaking changes:** the `app.run_*` loops now take the poll timeout as a function, and several types changed shape. See [docs/migrating-to-2.0.md](docs/migrating-to-2.0.md).
+>
+> - `app.run`, `run_buffered`, `run_animated`, `run_buffered_cursor`: the timeout is `fn(state) -> Int`. Write `fn(_) { 16 }` for the old behaviour.
+> - `backend.InputEvent` and `backend.RenderOp` gained variants. Add a `_ ->` arm to any exhaustive `case`.
+> - The buffer, `Cell` and `Span` take a `style.Style` instead of fg/bg/modifier. Use `style.new(fg, bg, modifier)`.
+> - `geometry.split_flex` is gone. Use `geometry.split_with`.
+> - `erlang.ErlangTerminalState`, `node.NodeState` and `browser.BrowserState` are opaque.
+>
+> Apps that only use `app.run_*` and the widgets need at most the timeout change.
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/lupodevelop/etui/46ca25177b909bc74bf92d40055ac14aa0fe2f63/assets/logo.png" alt="Étui logo" width="200">
 </p>
@@ -237,7 +247,7 @@ app.run_buffered(
 
 On **JavaScript** (Node), the same functions return `Promise(AppResult(_))`.
 
-Low-level `RenderOp` values: `Write`, `MoveCursor`, `ClearScreen`, `EnterAltScreen`, `ExitAltScreen`, `EnableMouse`, `DisableMouse`, `BeginSynchronizedOutput`, `EndSynchronizedOutput`. Enable mouse with `default.new_with_mouse()`.
+Low-level `RenderOp` values: `Write`, `MoveCursor`, `ClearScreen`, `EnterAltScreen`, `ExitAltScreen`, `EnableMouse`, `DisableMouse`, `EnableBracketedPaste`, `DisableBracketedPaste`, `BeginSynchronizedOutput`, `EndSynchronizedOutput`. Enable mouse with `default.new_with_mouse()`.
 
 Every frame `terminal.draw` emits is wrapped in synchronized output (DEC private mode 2026), so the terminal shows the previous frame until the new one is complete. A terminal without the mode ignores it, and a frame with nothing to emit is not wrapped.
 
