@@ -146,6 +146,11 @@ Small, but they will not compile silently:
 
 ### Fixed
 
+- **Editing text with non-ASCII characters on JavaScript cut the wrong place.**
+  `string.drop_start` counts UTF-8 bytes of the prefix and then slices by UTF-16
+  units, so box drawing, CJK and emoji came back wrong. `input`, `textarea`,
+  `marquee` and `line_gauge` now use the new `text.drop_graphemes`, which counts
+  graphemes on both targets.
 - **The Node and browser backends could not start.** `node_ffi.mjs` and
   `browser_ffi.mjs` built `new Ok(...)` in `windowSize` without importing `Ok`,
   so initialising either backend threw a `ReferenceError`. No test started a
@@ -300,6 +305,8 @@ Small, but they will not compile silently:
 
 ### Changed
 
+- **`scroll_view.state_new` is the constructor's name.** Every other stateful
+  widget uses `state_new`. `sv_state_new` stays as an alias.
 - **`buffer.diff` returns at once for the same `Buffer` term.** An app that
   keeps its last frame and returns it while nothing changes skips the cell
   walk. Only a hit is trusted: distinct buffers with equal cells still go
