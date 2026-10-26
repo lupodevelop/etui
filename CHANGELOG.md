@@ -2,6 +2,15 @@
 
 All notable changes to étui are listed here.
 
+## Unreleased
+
+### Fixed
+
+- Respect supported emoji variation selectors when measuring and filling text.
+  VS16 selects two cells; VS15 selects one for BMP emoji. Erlang buffer writes
+  and bulk fills preserve complete ASCII keycaps and use the shared grapheme
+  width policy. ([#9](https://github.com/lupodevelop/etui/issues/9))
+
 ## 2.0.1 - 2026-10-26
 
 ### Fixed

@@ -55,9 +55,11 @@ fill_bin(Arr, Idx, MaxIdx, _, _, _, _) when Idx >= MaxIdx ->
     Arr;
 fill_bin(Arr, _, _, <<>>, _, _, _) ->
     Arr;
+%% ASCII before a non-ASCII byte may start a cluster (e.g. a keycap).
 %% ASCII printable fast path: cached Content tuple, single Cell alloc per char
 fill_bin(Arr, Idx, MaxIdx, <<B, Rest/binary>>, St, Link, T)
-        when B >= 16#20, B < 16#7F ->
+        when B >= 16#20, B < 16#7F,
+             (Rest =:= <<>> orelse binary_part(Rest, 0, 1) < <<16#80>>) ->
     Content = element(B + 1, T),
     Cell = {cell, Content, St, Link},
     fill_bin(array:set(Idx, Cell, Arr), Idx + 1, MaxIdx, Rest, St, Link, T);
@@ -73,9 +75,8 @@ fill_bin(Arr, Idx, MaxIdx, Bin, St, Link, T) ->
     case string:next_grapheme(Bin) of
         [] -> Arr;
         [G | Rest] ->
-            {GBin, FirstCp} = grapheme_parts(G),
-            fill_grapheme(Arr, Idx, MaxIdx, Rest, GBin, cp_width(FirstCp),
-                          St, Link, T)
+            {GBin, W} = grapheme_parts(G),
+            fill_grapheme(Arr, Idx, MaxIdx, Rest, GBin, W, St, Link, T)
     end.
 
 %% Write one grapheme cluster at Idx.
@@ -118,9 +119,11 @@ build_row_rev(Width, Col, _, _, _, _, _Default, RevAcc) when Col >= Width ->
     RevAcc;
 build_row_rev(Width, Col, <<>>, _St, _Link, _T, Default, RevAcc) ->
     fill_rev(Width - Col, Default, RevAcc);
+%% ASCII before a non-ASCII byte may start a cluster (e.g. a keycap).
 %% ASCII printable fast path: cached Content tuple, single Cell alloc per char.
 build_row_rev(Width, Col, <<B, Rest/binary>>, St, Link, T, Default, RevAcc)
-        when B >= 16#20, B < 16#7F ->
+        when B >= 16#20, B < 16#7F,
+             (Rest =:= <<>> orelse binary_part(Rest, 0, 1) < <<16#80>>) ->
     Content = element(B + 1, T),
     Cell = {cell, Content, St, Link},
     build_row_rev(Width, Col + 1, Rest, St, Link, T, Default, [Cell | RevAcc]);
@@ -136,8 +139,8 @@ build_row_rev(Width, Col, Bin, St, Link, T, Default, RevAcc) ->
         [] ->
             fill_rev(Width - Col, Default, RevAcc);
         [G | Rest] ->
-            {GBin, FirstCp} = grapheme_parts(G),
-            case cp_width(FirstCp) of
+            {GBin, GW} = grapheme_parts(G),
+            case GW of
                 W when W >= 2, Col + 1 >= Width ->
                     %% No room for the trailing half. Emit a blank rather than
                     %% a wide glyph that would overflow the row.
@@ -158,9 +161,10 @@ build_row_rev(Width, Col, Bin, St, Link, T, Default, RevAcc) ->
 %% string:next_grapheme/1 yields a bare codepoint for a single-codepoint
 %% cluster and a list for a multi-codepoint one (ZWJ sequence, flag pair).
 grapheme_parts(G) when is_integer(G) ->
-    {unicode:characters_to_binary([G]), G};
-grapheme_parts([FirstCp | _] = GList) ->
-    {unicode:characters_to_binary(GList), FirstCp}.
+    {unicode:characters_to_binary([G]), cp_width(G)};
+grapheme_parts(GList) ->
+    GBin = unicode:characters_to_binary(GList),
+    {GBin, 'etui@text':grapheme_cell_width(GBin)}.
 
 fill_rev(0, _, Acc) -> Acc;
 fill_rev(N, V, Acc) -> fill_rev(N - 1, V, [V | Acc]).

@@ -3,7 +3,8 @@
 /// All `width` values are in **terminal cells**, not graphemes or codepoints:
 ///   - ASCII printable: 1 cell
 ///   - CJK / Hangul / Hiragana / Katakana / Fullwidth: 2 cells
-///   - Emoji (including ZWJ sequences): 2 cells (first codepoint rule)
+///   - Emoji (including ZWJ sequences): 2 cells by default
+///   - Supported VS16 sequences: 2 cells; VS15 on BMP emoji: 1 cell
 ///   - Combining marks, ZWJ, variation selectors, zero-width formatters: 0 cells
 ///   - Misc Symbols U+2600–26FF and Dingbats U+2700–27BF: 1 cell, except the
 ///     East Asian Wide ones (⚡ ✅ ❌ ⭐ ...), which are 2.
@@ -42,13 +43,223 @@ pub fn cell_width(s: String) -> Int {
 }
 
 /// Cell width of a single grapheme cluster.
-/// Uses the first codepoint's East Asian Width / emoji classification.
-/// Subsequent codepoints in a grapheme (combining, ZWJ, variation selectors)
-/// contribute 0, so the first determines the visible cell count.
+/// The base determines width, except for a supported emoji variation sequence:
+/// VS16 requests two cells; VS15 requests one for bases below U+1F000.
+/// Supplementary emoji retain their base width with VS15. This is a terminal
+/// width policy; actual glyph presentation depends on the terminal and font.
+/// Selectors must immediately follow a base listed in Unicode 16.0's emoji
+/// variation sequences. Combining marks and the rest of a ZWJ cluster add no
+/// cells of their own.
 pub fn grapheme_cell_width(g: String) -> Int {
   case string.to_utf_codepoints(g) {
     [] -> 0
-    [cp, ..] -> codepoint_cell_width(string.utf_codepoint_to_int(cp))
+    [cp] -> codepoint_cell_width(string.utf_codepoint_to_int(cp))
+    [cp, next, ..] -> {
+      let base = string.utf_codepoint_to_int(cp)
+      let selector = string.utf_codepoint_to_int(next)
+      case selector {
+        0xFE0F | 0xFE0E ->
+          case emoji_variation_base(base) {
+            True if selector == 0xFE0F -> 2
+            True if base < 0x1F000 -> 1
+            _ -> codepoint_cell_width(base)
+          }
+        _ -> codepoint_cell_width(base)
+      }
+    }
+  }
+}
+
+// Bases from Unicode 16.0 emoji-variation-sequences.txt (2024-05-01).
+// https://www.unicode.org/Public/16.0.0/ucd/emoji/emoji-variation-sequences.txt
+// Unicode data license: https://www.unicode.org/license.txt
+// Merge consecutive bases into ranges when regenerating this table.
+fn emoji_variation_base(cp: Int) -> Bool {
+  case cp {
+    0x0023 -> True
+    0x002A -> True
+    n if n >= 0x0030 && n <= 0x0039 -> True
+    0x00A9 -> True
+    0x00AE -> True
+    0x203C -> True
+    0x2049 -> True
+    0x2122 -> True
+    0x2139 -> True
+    n if n >= 0x2194 && n <= 0x2199 -> True
+    n if n >= 0x21A9 && n <= 0x21AA -> True
+    n if n >= 0x231A && n <= 0x231B -> True
+    0x2328 -> True
+    0x23CF -> True
+    n if n >= 0x23E9 && n <= 0x23F3 -> True
+    n if n >= 0x23F8 && n <= 0x23FA -> True
+    0x24C2 -> True
+    n if n >= 0x25AA && n <= 0x25AB -> True
+    0x25B6 -> True
+    0x25C0 -> True
+    n if n >= 0x25FB && n <= 0x25FE -> True
+    n if n >= 0x2600 && n <= 0x2604 -> True
+    0x260E -> True
+    0x2611 -> True
+    n if n >= 0x2614 && n <= 0x2615 -> True
+    0x2618 -> True
+    0x261D -> True
+    0x2620 -> True
+    n if n >= 0x2622 && n <= 0x2623 -> True
+    0x2626 -> True
+    0x262A -> True
+    n if n >= 0x262E && n <= 0x262F -> True
+    n if n >= 0x2638 && n <= 0x263A -> True
+    0x2640 -> True
+    0x2642 -> True
+    n if n >= 0x2648 && n <= 0x2653 -> True
+    n if n >= 0x265F && n <= 0x2660 -> True
+    0x2663 -> True
+    n if n >= 0x2665 && n <= 0x2666 -> True
+    0x2668 -> True
+    0x267B -> True
+    n if n >= 0x267E && n <= 0x267F -> True
+    n if n >= 0x2692 && n <= 0x2697 -> True
+    0x2699 -> True
+    n if n >= 0x269B && n <= 0x269C -> True
+    n if n >= 0x26A0 && n <= 0x26A1 -> True
+    0x26A7 -> True
+    n if n >= 0x26AA && n <= 0x26AB -> True
+    n if n >= 0x26B0 && n <= 0x26B1 -> True
+    n if n >= 0x26BD && n <= 0x26BE -> True
+    n if n >= 0x26C4 && n <= 0x26C5 -> True
+    0x26C8 -> True
+    n if n >= 0x26CE && n <= 0x26CF -> True
+    0x26D1 -> True
+    n if n >= 0x26D3 && n <= 0x26D4 -> True
+    n if n >= 0x26E9 && n <= 0x26EA -> True
+    n if n >= 0x26F0 && n <= 0x26F5 -> True
+    n if n >= 0x26F7 && n <= 0x26FA -> True
+    0x26FD -> True
+    0x2702 -> True
+    0x2705 -> True
+    n if n >= 0x2708 && n <= 0x270D -> True
+    0x270F -> True
+    0x2712 -> True
+    0x2714 -> True
+    0x2716 -> True
+    0x271D -> True
+    0x2721 -> True
+    0x2728 -> True
+    n if n >= 0x2733 && n <= 0x2734 -> True
+    0x2744 -> True
+    0x2747 -> True
+    0x274C -> True
+    0x274E -> True
+    n if n >= 0x2753 && n <= 0x2755 -> True
+    0x2757 -> True
+    n if n >= 0x2763 && n <= 0x2764 -> True
+    n if n >= 0x2795 && n <= 0x2797 -> True
+    0x27A1 -> True
+    0x27B0 -> True
+    0x27BF -> True
+    n if n >= 0x2934 && n <= 0x2935 -> True
+    n if n >= 0x2B05 && n <= 0x2B07 -> True
+    n if n >= 0x2B1B && n <= 0x2B1C -> True
+    0x2B50 -> True
+    0x2B55 -> True
+    0x3030 -> True
+    0x303D -> True
+    0x3297 -> True
+    0x3299 -> True
+    0x1F004 -> True
+    n if n >= 0x1F170 && n <= 0x1F171 -> True
+    n if n >= 0x1F17E && n <= 0x1F17F -> True
+    0x1F202 -> True
+    0x1F21A -> True
+    0x1F22F -> True
+    0x1F237 -> True
+    n if n >= 0x1F30D && n <= 0x1F30F -> True
+    0x1F315 -> True
+    0x1F31C -> True
+    0x1F321 -> True
+    n if n >= 0x1F324 && n <= 0x1F32C -> True
+    0x1F336 -> True
+    0x1F378 -> True
+    0x1F37D -> True
+    0x1F393 -> True
+    n if n >= 0x1F396 && n <= 0x1F397 -> True
+    n if n >= 0x1F399 && n <= 0x1F39B -> True
+    n if n >= 0x1F39E && n <= 0x1F39F -> True
+    0x1F3A7 -> True
+    n if n >= 0x1F3AC && n <= 0x1F3AE -> True
+    0x1F3C2 -> True
+    0x1F3C4 -> True
+    0x1F3C6 -> True
+    n if n >= 0x1F3CA && n <= 0x1F3CE -> True
+    n if n >= 0x1F3D4 && n <= 0x1F3E0 -> True
+    0x1F3ED -> True
+    0x1F3F3 -> True
+    0x1F3F5 -> True
+    0x1F3F7 -> True
+    0x1F408 -> True
+    0x1F415 -> True
+    0x1F41F -> True
+    0x1F426 -> True
+    0x1F43F -> True
+    n if n >= 0x1F441 && n <= 0x1F442 -> True
+    n if n >= 0x1F446 && n <= 0x1F449 -> True
+    n if n >= 0x1F44D && n <= 0x1F44E -> True
+    0x1F453 -> True
+    0x1F46A -> True
+    0x1F47D -> True
+    0x1F4A3 -> True
+    0x1F4B0 -> True
+    0x1F4B3 -> True
+    0x1F4BB -> True
+    0x1F4BF -> True
+    0x1F4CB -> True
+    0x1F4DA -> True
+    0x1F4DF -> True
+    n if n >= 0x1F4E4 && n <= 0x1F4E6 -> True
+    n if n >= 0x1F4EA && n <= 0x1F4ED -> True
+    0x1F4F7 -> True
+    n if n >= 0x1F4F9 && n <= 0x1F4FB -> True
+    0x1F4FD -> True
+    0x1F508 -> True
+    0x1F50D -> True
+    n if n >= 0x1F512 && n <= 0x1F513 -> True
+    n if n >= 0x1F549 && n <= 0x1F54A -> True
+    n if n >= 0x1F550 && n <= 0x1F567 -> True
+    n if n >= 0x1F56F && n <= 0x1F570 -> True
+    n if n >= 0x1F573 && n <= 0x1F579 -> True
+    0x1F587 -> True
+    n if n >= 0x1F58A && n <= 0x1F58D -> True
+    0x1F590 -> True
+    0x1F5A5 -> True
+    0x1F5A8 -> True
+    n if n >= 0x1F5B1 && n <= 0x1F5B2 -> True
+    0x1F5BC -> True
+    n if n >= 0x1F5C2 && n <= 0x1F5C4 -> True
+    n if n >= 0x1F5D1 && n <= 0x1F5D3 -> True
+    n if n >= 0x1F5DC && n <= 0x1F5DE -> True
+    0x1F5E1 -> True
+    0x1F5E3 -> True
+    0x1F5E8 -> True
+    0x1F5EF -> True
+    0x1F5F3 -> True
+    0x1F5FA -> True
+    0x1F610 -> True
+    0x1F687 -> True
+    0x1F68D -> True
+    0x1F691 -> True
+    0x1F694 -> True
+    0x1F698 -> True
+    0x1F6AD -> True
+    0x1F6B2 -> True
+    n if n >= 0x1F6B9 && n <= 0x1F6BA -> True
+    0x1F6BC -> True
+    0x1F6CB -> True
+    n if n >= 0x1F6CD && n <= 0x1F6CF -> True
+    n if n >= 0x1F6E0 && n <= 0x1F6E5 -> True
+    0x1F6E9 -> True
+    0x1F6F0 -> True
+    0x1F6F3 -> True
+    _ -> False
   }
 }
 
