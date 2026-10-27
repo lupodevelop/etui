@@ -72,10 +72,10 @@ fill_bin(Arr, Idx, MaxIdx, <<16#7F, Rest/binary>>, St, Link, T) ->
 %% string:next_grapheme/1 returns [Codepoint|Rest] (single cp)
 %% or [[Cp,...]|Rest] (ZWJ sequence / multi-cp cluster).
 fill_bin(Arr, Idx, MaxIdx, Bin, St, Link, T) ->
-    case string:next_grapheme(Bin) of
-        [] -> Arr;
-        [G | Rest] ->
-            {GBin, W} = grapheme_parts(G),
+    case etui_text_ffi:next_grapheme(Bin) of
+        done -> Arr;
+        {GBin, Rest} ->
+            W = cluster_width(GBin),
             fill_grapheme(Arr, Idx, MaxIdx, Rest, GBin, W, St, Link, T)
     end.
 
@@ -84,6 +84,8 @@ fill_bin(Arr, Idx, MaxIdx, Bin, St, Link, T) ->
 %% A wide grapheme needs two columns. If only one is left before MaxIdx the
 %% cell is left blank: writing the glyph anyway made it overflow the clip
 %% boundary and shift everything to its right.
+fill_grapheme(Arr, Idx, MaxIdx, Rest, _GBin, 0, St, Link, T) ->
+    fill_bin(Arr, Idx, MaxIdx, Rest, St, Link, T);
 fill_grapheme(Arr, Idx, MaxIdx, Rest, _GBin, W, St, Link, T)
         when W >= 2, Idx + 1 >= MaxIdx ->
     fill_bin(Arr, Idx + 1, MaxIdx, Rest, St, Link, T);
@@ -135,12 +137,13 @@ build_row_rev(Width, Col, <<B, Rest/binary>>, St, Link, T, Default, RevAcc)
 %% Dropping these (the previous catch-all did) silently deleted every CJK and
 %% emoji character from a filled buffer, and diverged from the JS backend.
 build_row_rev(Width, Col, Bin, St, Link, T, Default, RevAcc) ->
-    case string:next_grapheme(Bin) of
-        [] ->
+    case etui_text_ffi:next_grapheme(Bin) of
+        done ->
             fill_rev(Width - Col, Default, RevAcc);
-        [G | Rest] ->
-            {GBin, GW} = grapheme_parts(G),
-            case GW of
+        {GBin, Rest} ->
+            case cluster_width(GBin) of
+                0 ->
+                    build_row_rev(Width, Col, Rest, St, Link, T, Default, RevAcc);
                 W when W >= 2, Col + 1 >= Width ->
                     %% No room for the trailing half. Emit a blank rather than
                     %% a wide glyph that would overflow the row.
@@ -158,13 +161,10 @@ build_row_rev(Width, Col, Bin, St, Link, T, Default, RevAcc) ->
             end
     end.
 
-%% string:next_grapheme/1 yields a bare codepoint for a single-codepoint
-%% cluster and a list for a multi-codepoint one (ZWJ sequence, flag pair).
-grapheme_parts(G) when is_integer(G) ->
-    {unicode:characters_to_binary([G]), cp_width(G)};
-grapheme_parts(GList) ->
-    GBin = unicode:characters_to_binary(GList),
-    {GBin, 'etui@text':grapheme_cell_width(GBin)}.
+%% Keep the single-codepoint width fast path; multi-codepoint clusters share
+%% text.gleam's selector policy.
+cluster_width(<<Cp/utf8>>) -> cp_width(Cp);
+cluster_width(GBin) -> 'etui@text':grapheme_cell_width(GBin).
 
 fill_rev(0, _, Acc) -> Acc;
 fill_rev(N, V, Acc) -> fill_rev(N - 1, V, [V | Acc]).

@@ -160,3 +160,9 @@ The Erlang and JavaScript backends preserve the complete grapheme in the buffer,
 including ASCII keycaps such as `1️⃣`. A two-cell grapheme is omitted when only
 one cell remains in the row. Actual glyph appearance and width can still vary
 with terminal and font.
+
+Standalone clusters measured as zero cells (such as a leading combining mark,
+ZWSP or a lone variation selector) are ignored by buffer writes and bulk fills.
+They neither replace an existing cell nor advance the cursor. Marks attached
+to a visible base remain in its cell, including combining tails after ZWJ that
+OTP may return separately.

@@ -6,6 +6,10 @@ All notable changes to étui are listed here.
 
 ### Fixed
 
+- Standalone zero-width clusters no longer overwrite or consume buffer cells.
+  Combining marks attached to a visible base remain intact. Text measurement,
+  wrapping and both fill paths share segmentation that retains tails OTP
+  splits after ZWJ.
 - Respect supported emoji variation selectors when measuring and filling text.
   VS16 selects two cells; VS15 selects one for BMP emoji. Erlang buffer writes
   and bulk fills preserve complete ASCII keycaps and use the shared grapheme

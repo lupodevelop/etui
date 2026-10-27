@@ -96,3 +96,15 @@ and clipping regressions. Only test assertion failures count as detected
 mutations. A surviving mutation, compilation failure, stale replacement or
 timeout fails the command. This is a targeted regression check, not a general
 mutation-testing engine; expanding its mutation list requires review.
+
+```sh
+python3 dev/check_unicode_rows.py
+```
+
+This compares actual cells from the same deterministic mixed-row corpus on
+Erlang and JavaScript: symbols, widths, continuation cells, styles and links.
+The normal test suites also compare that corpus with an independent cell model,
+including clipping, nonzero origins, out-of-bounds starts and preservation of
+the original buffer. Failures identify the seed and write offset. Runtime
+segmentation can differ; an explicit regression covers combining tails after
+ZWJ, and the shared text/buffer segmentation retains those tails in the visible cell.

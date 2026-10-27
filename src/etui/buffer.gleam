@@ -8,7 +8,6 @@ import etui/style
 import etui/text
 import gleam/int
 import gleam/list
-import gleam/string
 
 // ─────────────────────────────────────────────────────────────────
 // External array type (Erlang array / JS flat array)
@@ -85,14 +84,7 @@ fn fill_all_rows_gleam(
     False -> {
       let start = row * width
       let arr2 =
-        fill_graphemes(
-          arr,
-          start,
-          start + width,
-          string.to_graphemes(str),
-          s,
-          link,
-        )
+        fill_graphemes(arr, start, start + width, text.graphemes(str), s, link)
       fill_all_rows_gleam(arr2, row + 1, height, width, str, s, link)
     }
   }
@@ -110,7 +102,7 @@ fn fill_string_ffi(
   s: style.Style,
   link: String,
 ) -> CellArray {
-  fill_graphemes(arr, start_idx, max_idx, string.to_graphemes(str), s, link)
+  fill_graphemes(arr, start_idx, max_idx, text.graphemes(str), s, link)
 }
 
 fn fill_graphemes(
@@ -141,9 +133,9 @@ fn fill_draft(
           let w = text.grapheme_cell_width(g)
           let cell =
             Cell(content: Content(symbol: g, width: w), style: s, link: link)
-          case is_ascii_control(g), w >= 2 {
-            // Match the Erlang fill_bin path: controls must neither reach
-            // the terminal nor advance the cell index. CRLF is one grapheme.
+          case w == 0, w >= 2 {
+            // A standalone zero-width cluster has no cell to occupy.
+            // Attached marks remain part of their visible base grapheme.
             True, _ -> fill_draft(arr, idx, max_idx, rest, s, link)
             // A wide grapheme needs two columns. With only one left before
             // max_idx, leave the cell blank: writing the glyph anyway made it
@@ -175,16 +167,6 @@ fn fill_draft(
           }
         }
       }
-  }
-}
-
-fn is_ascii_control(g: String) -> Bool {
-  case string.to_utf_codepoints(g) {
-    [] -> False
-    [cp, ..] -> {
-      let n = string.utf_codepoint_to_int(cp)
-      n < 0x20 || n == 0x7F
-    }
   }
 }
 
@@ -370,7 +352,8 @@ pub fn set_cell(buffer: Buffer, pos: geometry.Position, cell: Cell) -> Buffer {
 /// Wide graphemes (width=2) take one Cell + one Continuation cell.
 /// ASCII controls (U+0000–001F and DEL), including newlines and tabs, are
 /// ignored without consuming cells. Split lines / expand tabs before writing
-/// when they should affect layout.
+/// when they should affect layout. Standalone zero-width clusters consume no
+/// cells. Combining marks attached to a visible base stay in that cell.
 pub fn set_string(
   buffer: Buffer,
   pos: geometry.Position,

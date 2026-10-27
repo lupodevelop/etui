@@ -346,7 +346,13 @@ fn fill_width(cp: Int) -> Int {
     )
   case buffer.is_continuation(buffer.get_cell(buf, geometry.Position(1, 0))) {
     True -> 2
-    False -> 1
+    False ->
+      case
+        buffer.cell_symbol(buffer.get_cell(buf, geometry.Position(0, 0))) == s
+      {
+        True -> 1
+        False -> 0
+      }
   }
 }
 
@@ -355,10 +361,7 @@ fn check_fill(cp: Int, last: Int) -> Nil {
   case cp > last {
     True -> Nil
     False -> {
-      case text.codepoint_cell_width(cp) {
-        0 -> Nil
-        w -> fill_width(cp) |> should.equal(w)
-      }
+      fill_width(cp) |> should.equal(text.codepoint_cell_width(cp))
       check_fill(cp + 1, last)
     }
   }

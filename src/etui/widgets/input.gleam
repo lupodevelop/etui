@@ -14,6 +14,7 @@ import etui/geometry
 import etui/style
 import etui/text
 import gleam/int
+import gleam/list
 import gleam/string
 
 // ─────────────────────────────────────────────────────────────────
@@ -138,7 +139,8 @@ pub fn insert_char(
     True -> state
     False -> {
       let before = text.truncate(state.value, state.cursor, "")
-      let after = text.drop_graphemes(state.value, string.length(before))
+      let after =
+        text.drop_graphemes(state.value, list.length(text.graphemes(before)))
       InputState(
         value: before <> ch <> after,
         cursor: state.cursor + text.cell_width(ch),
@@ -154,7 +156,9 @@ pub fn backspace(state: InputState) -> InputState {
     False -> {
       let before = text.truncate(state.value, state.cursor - 1, "")
       let graphemes_at_cursor =
-        string.length(text.truncate(state.value, state.cursor, ""))
+        list.length(
+          text.graphemes(text.truncate(state.value, state.cursor, "")),
+        )
       let after = text.drop_graphemes(state.value, graphemes_at_cursor)
       InputState(value: before <> after, cursor: text.cell_width(before))
     }
@@ -236,7 +240,8 @@ pub fn render(
         False -> 0
       }
       let prefix = text.truncate(display_text, view_start, "")
-      let suffix = text.drop_graphemes(display_text, string.length(prefix))
+      let suffix =
+        text.drop_graphemes(display_text, list.length(text.graphemes(prefix)))
       let truncated = text.truncate(suffix, w_avail, "")
       let padded = text.pad_right(truncated, w_avail)
       let modifier = case has_value {
@@ -258,8 +263,8 @@ pub fn render(
 
 fn grapheme_width_at(s: String, cell_pos: Int) -> Int {
   let prefix = text.truncate(s, cell_pos, "")
-  let rest = text.drop_graphemes(s, string.length(prefix))
-  case string.to_graphemes(rest) {
+  let rest = text.drop_graphemes(s, list.length(text.graphemes(prefix)))
+  case text.graphemes(rest) {
     [g, ..] -> text.cell_width(g)
     [] -> 1
   }

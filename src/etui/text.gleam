@@ -31,6 +31,7 @@ import gleam/string
 /// graphemes("café") // ["c", "a", "f", "é"]
 /// graphemes("👨‍👩‍👧‍👦") // ["👨‍👩‍👧‍👦"], one cluster
 /// ```
+@external(erlang, "etui_text_ffi", "graphemes")
 pub fn graphemes(s: String) -> List(String) {
   string.to_graphemes(s)
 }
@@ -38,7 +39,7 @@ pub fn graphemes(s: String) -> List(String) {
 /// Cell width of a string (sum of grapheme widths).
 pub fn cell_width(s: String) -> Int {
   s
-  |> string.to_graphemes
+  |> graphemes
   |> list.fold(0, fn(acc, g) { acc + grapheme_cell_width(g) })
 }
 
@@ -416,7 +417,7 @@ pub fn truncate(s: String, max_width: Int, ellipsis: String) -> String {
         False -> {
           let ellipsis_width = cell_width(ellipsis)
           let available = int.max(0, max_width - ellipsis_width)
-          let gs = string.to_graphemes(s)
+          let gs = graphemes(s)
           take_prefix(gs, available, 0, "") <> ellipsis
         }
       }
@@ -456,7 +457,7 @@ pub fn drop_graphemes(s: String, n: Int) -> String {
     True -> s
     False ->
       s
-      |> string.to_graphemes
+      |> graphemes
       |> list.drop(n)
       |> string.concat
   }
@@ -504,8 +505,7 @@ pub fn normalise_newlines(s: String) -> String {
 pub fn expand_tabs(s: String, tab_width: Int) -> String {
   case string.contains(s, "\t") {
     False -> s
-    True ->
-      expand_tabs_loop(string.to_graphemes(s), int.max(1, tab_width), 0, [])
+    True -> expand_tabs_loop(graphemes(s), int.max(1, tab_width), 0, [])
   }
 }
 
@@ -601,7 +601,7 @@ fn join_words(rev_words: List(String)) -> String {
 // reversed once, so a long token (a CJK paragraph is one token, it has no
 // spaces) costs O(n) rather than O(n^2) in list appends and string copies.
 fn hard_break_word(s: String, max_width: Int) -> List(String) {
-  hard_break_acc(string.to_graphemes(s), max_width, 0, [], [])
+  hard_break_acc(graphemes(s), max_width, 0, [], [])
 }
 
 fn hard_break_acc(
@@ -681,7 +681,7 @@ pub fn align(s: String, width: Int, alignment: Alignment) -> String {
 /// Strip ANSI escape sequences. Handles CSI (`\e[…<final>`) and OSC
 /// (`\e]…ST`/`\e]…BEL`) sequences.
 pub fn strip_ansi(s: String) -> String {
-  strip_loop(string.to_graphemes(s), "", Plain)
+  strip_loop(graphemes(s), "", Plain)
 }
 
 type StripState {
