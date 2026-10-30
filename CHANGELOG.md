@@ -2,7 +2,7 @@
 
 All notable changes to étui are listed here.
 
-## Unreleased
+## 2.0.2 - 2026-10-30
 
 ### Fixed
 
