@@ -346,7 +346,13 @@ fn fill_width(cp: Int) -> Int {
     )
   case buffer.is_continuation(buffer.get_cell(buf, geometry.Position(1, 0))) {
     True -> 2
-    False -> 1
+    False ->
+      case
+        buffer.cell_symbol(buffer.get_cell(buf, geometry.Position(0, 0))) == s
+      {
+        True -> 1
+        False -> 0
+      }
   }
 }
 
@@ -355,10 +361,7 @@ fn check_fill(cp: Int, last: Int) -> Nil {
   case cp > last {
     True -> Nil
     False -> {
-      case text.codepoint_cell_width(cp) {
-        0 -> Nil
-        w -> fill_width(cp) |> should.equal(w)
-      }
+      fill_width(cp) |> should.equal(text.codepoint_cell_width(cp))
       check_fill(cp + 1, last)
     }
   }
@@ -366,9 +369,9 @@ fn check_fill(cp: Int, last: Int) -> Nil {
 
 @target(erlang)
 pub fn buffer_fill_agrees_with_text_width_test() {
-  check_fill(0x1F000, 0x1FAFF)
-  check_fill(0x2E80, 0x3100)
-  check_fill(0xA000, 0xA4CF)
+  // Every scalar through CJK Extension G; surrogate code points are invalid.
+  check_fill(0, 0xD7FF)
+  check_fill(0xE000, 0x3FFFF)
 }
 
 // ─── Wide symbols below U+1F300 ────────────────────────────────────

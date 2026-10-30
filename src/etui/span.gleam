@@ -517,7 +517,7 @@ fn same_style(a: Span, b: Span) -> Bool {
 // walk always ends. A zero-width grapheme fits wherever it lands and so stays
 // with the grapheme before it.
 fn break_word(content: String, room: Int, width: Int) -> List(String) {
-  cut(string.to_graphemes(content), width, room, False, "", 0, [])
+  cut(text.graphemes(content), width, room, False, "", 0, [])
 }
 
 fn cut(

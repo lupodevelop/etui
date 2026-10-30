@@ -1,5 +1,5 @@
 name = "etui"
-version = "2.0.1"
+version = "2.0.2"
 description = "A TUI library for Gleam: correct Unicode, minimal-diff rendering, clean terminal teardown."
 licences = ["MIT"]
 repository = { type = "github", user = "lupodevelop", repo = "etui" }

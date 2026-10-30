@@ -6,7 +6,7 @@ import etui/geometry
 import etui/style
 import etui/text
 import gleam/int
-import gleam/string
+import gleam/list
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -90,7 +90,9 @@ pub fn render(
           let available =
             text.drop_graphemes(
               doubled,
-              string.length(text.truncate(doubled, offset_cells, "")),
+              list.length(
+                text.graphemes(text.truncate(doubled, offset_cells, "")),
+              ),
             )
           let padded = text.pad_right(available, area.size.width)
           let line = text.truncate(padded, area.size.width, "")

@@ -146,3 +146,23 @@ block.block_new()
 ```
 
 `with_bg_fill` paints every cell inside the border with the block's background color. Useful for popup backgrounds and highlighted panels.
+
+## Emoji presentation and cell width
+
+Text measurement, wrapping and buffer writes share the same cell-width policy.
+For Unicode 16.0 emoji variation sequences, VS16 (`U+FE0F`) requests two cells:
+`☺` is one cell, while `☺️` is two. VS15 (`U+FE0E`) requests one cell for
+supported bases below U+1F000, so `☕︎` is one cell. Supplementary emoji retain
+their base width with VS15. A selector only affects a supported base immediately
+before it; it does not narrow CJK characters or widen arbitrary letters.
+
+The Erlang and JavaScript backends preserve the complete grapheme in the buffer,
+including ASCII keycaps such as `1️⃣`. A two-cell grapheme is omitted when only
+one cell remains in the row. Actual glyph appearance and width can still vary
+with terminal and font.
+
+Standalone clusters measured as zero cells (such as a leading combining mark,
+ZWSP or a lone variation selector) are ignored by buffer writes and bulk fills.
+They neither replace an existing cell nor advance the cursor. Marks attached
+to a visible base remain in its cell, including combining tails after ZWJ that
+OTP may return separately.

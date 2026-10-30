@@ -55,9 +55,11 @@ fill_bin(Arr, Idx, MaxIdx, _, _, _, _) when Idx >= MaxIdx ->
     Arr;
 fill_bin(Arr, _, _, <<>>, _, _, _) ->
     Arr;
+%% ASCII before a non-ASCII byte may start a cluster (e.g. a keycap).
 %% ASCII printable fast path: cached Content tuple, single Cell alloc per char
 fill_bin(Arr, Idx, MaxIdx, <<B, Rest/binary>>, St, Link, T)
-        when B >= 16#20, B < 16#7F ->
+        when B >= 16#20, B < 16#7F,
+             (Rest =:= <<>> orelse binary_part(Rest, 0, 1) < <<16#80>>) ->
     Content = element(B + 1, T),
     Cell = {cell, Content, St, Link},
     fill_bin(array:set(Idx, Cell, Arr), Idx + 1, MaxIdx, Rest, St, Link, T);
@@ -70,12 +72,11 @@ fill_bin(Arr, Idx, MaxIdx, <<16#7F, Rest/binary>>, St, Link, T) ->
 %% string:next_grapheme/1 returns [Codepoint|Rest] (single cp)
 %% or [[Cp,...]|Rest] (ZWJ sequence / multi-cp cluster).
 fill_bin(Arr, Idx, MaxIdx, Bin, St, Link, T) ->
-    case string:next_grapheme(Bin) of
-        [] -> Arr;
-        [G | Rest] ->
-            {GBin, FirstCp} = grapheme_parts(G),
-            fill_grapheme(Arr, Idx, MaxIdx, Rest, GBin, cp_width(FirstCp),
-                          St, Link, T)
+    case etui_text_ffi:next_grapheme(Bin) of
+        done -> Arr;
+        {GBin, Rest} ->
+            W = cluster_width(GBin),
+            fill_grapheme(Arr, Idx, MaxIdx, Rest, GBin, W, St, Link, T)
     end.
 
 %% Write one grapheme cluster at Idx.
@@ -83,6 +84,8 @@ fill_bin(Arr, Idx, MaxIdx, Bin, St, Link, T) ->
 %% A wide grapheme needs two columns. If only one is left before MaxIdx the
 %% cell is left blank: writing the glyph anyway made it overflow the clip
 %% boundary and shift everything to its right.
+fill_grapheme(Arr, Idx, MaxIdx, Rest, _GBin, 0, St, Link, T) ->
+    fill_bin(Arr, Idx, MaxIdx, Rest, St, Link, T);
 fill_grapheme(Arr, Idx, MaxIdx, Rest, _GBin, W, St, Link, T)
         when W >= 2, Idx + 1 >= MaxIdx ->
     fill_bin(Arr, Idx + 1, MaxIdx, Rest, St, Link, T);
@@ -118,9 +121,11 @@ build_row_rev(Width, Col, _, _, _, _, _Default, RevAcc) when Col >= Width ->
     RevAcc;
 build_row_rev(Width, Col, <<>>, _St, _Link, _T, Default, RevAcc) ->
     fill_rev(Width - Col, Default, RevAcc);
+%% ASCII before a non-ASCII byte may start a cluster (e.g. a keycap).
 %% ASCII printable fast path: cached Content tuple, single Cell alloc per char.
 build_row_rev(Width, Col, <<B, Rest/binary>>, St, Link, T, Default, RevAcc)
-        when B >= 16#20, B < 16#7F ->
+        when B >= 16#20, B < 16#7F,
+             (Rest =:= <<>> orelse binary_part(Rest, 0, 1) < <<16#80>>) ->
     Content = element(B + 1, T),
     Cell = {cell, Content, St, Link},
     build_row_rev(Width, Col + 1, Rest, St, Link, T, Default, [Cell | RevAcc]);
@@ -132,12 +137,13 @@ build_row_rev(Width, Col, <<B, Rest/binary>>, St, Link, T, Default, RevAcc)
 %% Dropping these (the previous catch-all did) silently deleted every CJK and
 %% emoji character from a filled buffer, and diverged from the JS backend.
 build_row_rev(Width, Col, Bin, St, Link, T, Default, RevAcc) ->
-    case string:next_grapheme(Bin) of
-        [] ->
+    case etui_text_ffi:next_grapheme(Bin) of
+        done ->
             fill_rev(Width - Col, Default, RevAcc);
-        [G | Rest] ->
-            {GBin, FirstCp} = grapheme_parts(G),
-            case cp_width(FirstCp) of
+        {GBin, Rest} ->
+            case cluster_width(GBin) of
+                0 ->
+                    build_row_rev(Width, Col, Rest, St, Link, T, Default, RevAcc);
                 W when W >= 2, Col + 1 >= Width ->
                     %% No room for the trailing half. Emit a blank rather than
                     %% a wide glyph that would overflow the row.
@@ -155,12 +161,10 @@ build_row_rev(Width, Col, Bin, St, Link, T, Default, RevAcc) ->
             end
     end.
 
-%% string:next_grapheme/1 yields a bare codepoint for a single-codepoint
-%% cluster and a list for a multi-codepoint one (ZWJ sequence, flag pair).
-grapheme_parts(G) when is_integer(G) ->
-    {unicode:characters_to_binary([G]), G};
-grapheme_parts([FirstCp | _] = GList) ->
-    {unicode:characters_to_binary(GList), FirstCp}.
+%% Keep the single-codepoint width fast path; multi-codepoint clusters share
+%% text.gleam's selector policy.
+cluster_width(<<Cp/utf8>>) -> cp_width(Cp);
+cluster_width(GBin) -> 'etui@text':grapheme_cell_width(GBin).
 
 fill_rev(0, _, Acc) -> Acc;
 fill_rev(N, V, Acc) -> fill_rev(N - 1, V, [V | Acc]).

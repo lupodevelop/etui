@@ -14,7 +14,7 @@ import etui/geometry
 import etui/style
 import etui/text
 import gleam/int
-import gleam/string
+import gleam/list
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -195,6 +195,10 @@ fn overlay_label(base: String, label: String, width: Int) -> String {
 fn drop_cells(s: String, n: Int) -> String {
   case n <= 0 {
     True -> s
-    False -> text.drop_graphemes(s, string.length(text.truncate(s, n, "")))
+    False ->
+      text.drop_graphemes(
+        s,
+        list.length(text.graphemes(text.truncate(s, n, ""))),
+      )
   }
 }
